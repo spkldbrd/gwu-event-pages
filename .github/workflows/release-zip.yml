@@ -1,0 +1,59 @@
+# Build gwu-event-pages.zip and attach it to a GitHub Release on every push to main.
+# Release tag matches GWU_EP_VERSION in gwu-event-pages.php. If that release already
+# exists, the zip asset is replaced (--clobber) so hotfixes on the same version refresh the package.
+
+name: Release plugin ZIP
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read GWU_EP_VERSION
+        id: version
+        run: |
+          VER=$(sed -n "s/.*define( 'GWU_EP_VERSION',[[:space:]]*'\([^']*\)'.*/\1/p" gwu-event-pages.php | head -1)
+          if [ -z "$VER" ]; then
+            echo "::error::Could not parse GWU_EP_VERSION from gwu-event-pages.php"
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Building release $VER"
+
+      - name: Assemble plugin folder and zip
+        run: |
+          mkdir -p build/gwu-event-pages
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.cursor' \
+            --exclude='build' \
+            --exclude='gwu-event-pages.zip' \
+            ./ build/gwu-event-pages/
+          (cd build && zip -rq "$GITHUB_WORKSPACE/gwu-event-pages.zip" gwu-event-pages)
+          ls -la gwu-event-pages.zip
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP="$GITHUB_WORKSPACE/gwu-event-pages.zip"
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION exists — replacing zip asset"
+            gh release upload "$VERSION" "$ZIP" --clobber
+          else
+            echo "Creating release $VERSION"
+            gh release create "$VERSION" "$ZIP" \
+              --title "$VERSION" \
+              --generate-notes
+          fi

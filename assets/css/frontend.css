@@ -1,0 +1,167 @@
+/* ==========================================================================
+   GWU Event Pages — Front-end styles
+   Covers both the [public_event_list] shortcode and the Event Marketing Page.
+   ========================================================================== */
+
+/* ── Public Event List: Wrapper / Two-Column Grid ─────────────────── */
+.hpl-wrapper {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2rem 3rem;
+	font-family: inherit;
+	line-height: 1.5;
+}
+
+@media ( max-width: 700px ) {
+	.hpl-wrapper {
+		grid-template-columns: 1fr;
+		gap: 1.5rem;
+	}
+}
+
+/* ── Column headings / descriptions ──────────────────────────────── */
+.hpl-col-heading {
+	margin-top: 0;
+	margin-bottom: 0.35rem;
+	font-size: 1.25em;
+	font-weight: 700;
+	color: inherit;
+}
+
+.hpl-col-desc {
+	margin-top: 0;
+	margin-bottom: 1.1rem;
+	color: #555;
+	font-size: 0.95em;
+}
+
+/* ── Event list ───────────────────────────────────────────────────── */
+.hpl-event-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.hpl-event-item {
+	margin-bottom: 1rem;
+	padding-bottom: 0;
+}
+
+/* ── Event title line ─────────────────────────────────────────────── */
+.hpl-event-title {
+	margin-bottom: 0.1rem;
+	font-size: 0.97em;
+}
+
+.hpl-event-title strong {
+	font-weight: 700;
+}
+
+.hpl-zoom-time {
+	color: #333;
+	white-space: nowrap;
+}
+
+/* ── Details link line ────────────────────────────────────────────── */
+.hpl-event-details-row {
+	font-size: 0.9em;
+	color: #444;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.hpl-details-link {
+	color: #0073aa;
+	text-decoration: none;
+	font-weight: 400;
+}
+
+.hpl-details-link:hover {
+	text-decoration: underline;
+}
+
+/* Pending link (no URL set yet) */
+.hpl-details-pending {
+	color: #999;
+	cursor: default;
+}
+
+/* ── Zoom badge (replaces logo image) ────────────────────────────── */
+.hpl-zoom-badge {
+	display: inline-block;
+	background: #2d8cff;
+	color: #fff;
+	font-size: 0.78em;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	padding: 2px 7px;
+	border-radius: 3px;
+	vertical-align: middle;
+	line-height: 1.4;
+}
+
+/* ── No-events fallback ───────────────────────────────────────────── */
+.hpl-no-events {
+	color: #888;
+	font-style: italic;
+}
+
+/* ── Dark mode support ────────────────────────────────────────────── */
+@media ( prefers-color-scheme: dark ) {
+	.hpl-col-desc {
+		color: #aaa;
+	}
+	.hpl-details-link {
+		color: #4eb8f0;
+	}
+	.hpl-event-details-row {
+		color: #ccc;
+	}
+	.hpl-zoom-time {
+		color: #ccc;
+	}
+}
+
+/* ── Event Marketing Page layout ─────────────────────────────────── */
+.gwu-event-marketing-wrap {
+	max-width: 860px;
+	margin: 0 auto;
+	padding: 0 20px 60px;
+}
+
+.gwu-event-marketing-title {
+	margin-bottom: 0.5rem;
+}
+
+.gwu-event-marketing-content {
+	font-size: 1rem;
+	line-height: 1.7;
+}
+
+.gwu-event-marketing-content h2 {
+	margin-top: 1.8em;
+	margin-bottom: 0.4em;
+	font-size: 1.15em;
+}
+
+.gwu-event-marketing-content p {
+	margin-bottom: 0.9em;
+}
+
+/* Registration button override — allows themes to style naturally */
+.gwu-reg-btn {
+	display: inline-block;
+	padding: 10px 24px;
+	background: #00509e;
+	color: #fff !important;
+	text-decoration: none !important;
+	border-radius: 4px;
+	font-weight: bold;
+	transition: background 0.15s;
+}
+
+.gwu-reg-btn:hover {
+	background: #003d7a;
+}
