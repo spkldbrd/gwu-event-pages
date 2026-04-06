@@ -19,8 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class GWU_Shortcode {
 
-	const TRANSIENT_KEY = 'gwu_public_events';
-	const CACHE_TTL     = 900; // 15 minutes
+	const TRANSIENT_KEY = 'gwu_ep_public_events';
 
 	public function register(): void {
 		add_shortcode( 'public_event_list', array( $this, 'render' ) );
@@ -38,12 +37,13 @@ class GWU_Shortcode {
 		if ( $payload === false ) {
 			$payload = $this->fetch_events();
 			if ( $payload !== null ) {
-				set_transient( self::TRANSIENT_KEY, $payload, self::CACHE_TTL );
+				$ttl = max( 60, (int) get_option( GWU_Admin::OPT_CACHE_TTL, 15 ) * 60 );
+				set_transient( self::TRANSIENT_KEY, $payload, $ttl );
 			}
 		}
 
 		if ( empty( $payload['events'] ) ) {
-			// Use stale cache if any is left (e.g. on a failed fresh fetch).
+			// Fall back to stale backup when the API is temporarily unreachable.
 			$stale = get_transient( self::TRANSIENT_KEY . '_stale' );
 			if ( $stale ) {
 				$payload = $stale;
@@ -52,7 +52,7 @@ class GWU_Shortcode {
 			}
 		}
 
-		// Save a longer-lived stale backup.
+		// Save a longer-lived stale backup used when the API is temporarily unreachable.
 		if ( ! empty( $payload['events'] ) ) {
 			set_transient( self::TRANSIENT_KEY . '_stale', $payload, DAY_IN_SECONDS );
 		}
@@ -65,7 +65,7 @@ class GWU_Shortcode {
 	// -------------------------------------------------------------------------
 
 	private function fetch_events(): ?array {
-		$url      = rtrim( GWU_EP_HMO_API, '/' ) . '/public-events';
+		$url      = rtrim( GWU_Admin::get_hmo_api(), '/' ) . '/public-events';
 		$response = wp_remote_get( $url, array( 'timeout' => 10 ) );
 
 		if ( is_wp_error( $response ) ) {
