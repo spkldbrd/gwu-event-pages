@@ -216,7 +216,7 @@ class GWU_Shortcode {
 		$out .= '<div class="hpl-event-details-row">';
 		$out .= 'Click for event ';
 		if ( $web_url ) {
-			$out .= '<a href="' . $web_url . '" class="hpl-details-link">details</a>';
+			$out .= '<a href="' . $web_url . '" class="hpl-details-link" target="_blank" rel="noopener noreferrer">details</a>';
 		} else {
 			$out .= '<span class="hpl-details-link hpl-details-pending">details</span>';
 		}

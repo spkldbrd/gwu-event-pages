@@ -161,7 +161,7 @@ class GWU_Past_Shortcode {
 
 		$out = '<span class="hpl-past-location">';
 		if ( $web_url && $web_url !== '#' ) {
-			$out .= '<a href="' . esc_url( $web_url ) . '">' . esc_html( $location ) . '</a>';
+			$out .= '<a href="' . esc_url( $web_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $location ) . '</a>';
 		} else {
 			$out .= esc_html( $location );
 		}

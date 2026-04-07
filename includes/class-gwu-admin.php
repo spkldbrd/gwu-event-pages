@@ -27,7 +27,8 @@ class GWU_Admin {
 
 	public function register(): void {
 		add_action( 'admin_menu',            array( $this, 'add_menu' ) );
-		add_action( 'wp_ajax_gwu_ep_test_api', array( $this, 'ajax_test_api' ) );
+		add_action( 'wp_ajax_gwu_ep_test_api',    array( $this, 'ajax_test_api' ) );
+		add_action( 'wp_ajax_gwu_ep_clear_cache', array( $this, 'ajax_clear_cache' ) );
 	}
 
 	public function add_menu(): void {
@@ -114,7 +115,8 @@ class GWU_Admin {
 		$api_url    = self::get_hmo_api();
 		$cache_ttl  = (int) get_option( self::OPT_CACHE_TTL,  15 );
 		$def_status = get_option( self::OPT_DEF_STATUS, 'publish' );
-		$api_nonce  = wp_create_nonce( 'gwu_ep_test_api' );
+		$api_nonce   = wp_create_nonce( 'gwu_ep_test_api' );
+		$cache_nonce = wp_create_nonce( 'gwu_ep_clear_cache' );
 		$const_api  = defined( 'GWU_EP_HMO_API' ) ? GWU_EP_HMO_API : '';
 		?>
 
@@ -163,6 +165,13 @@ class GWU_Admin {
 						<p class="description">
 							How long the <code>[public_event_list]</code> shortcode caches the API response.
 							Use <code>[public_event_list cache="0"]</code> on any page to force-refresh on that load.
+						</p>
+						<p>
+							<button type="button" id="gwu-ep-clear-cache" class="button"
+								data-nonce="<?php echo esc_attr( $cache_nonce ); ?>">
+								Clear Event Cache
+							</button>
+							<span id="gwu-ep-cache-status" style="margin-left:10px;font-style:italic;"></span>
 						</p>
 					</td>
 				</tr>
@@ -231,6 +240,28 @@ class GWU_Admin {
 
 		<script>
 		jQuery(function($){
+			$('#gwu-ep-clear-cache').on('click', function(){
+				var btn    = $(this);
+				var status = $('#gwu-ep-cache-status');
+				btn.prop('disabled', true).text('Clearing…');
+				status.css('color','').text('');
+
+				$.post(ajaxurl, {
+					action      : 'gwu_ep_clear_cache',
+					_ajax_nonce : btn.data('nonce')
+				}, function(resp){
+					btn.prop('disabled', false).text('Clear Event Cache');
+					if ( resp.success ) {
+						status.css('color','green').text(resp.data.message);
+					} else {
+						status.css('color','red').text('Error: ' + (resp.data || 'Unknown'));
+					}
+				}).fail(function(){
+					btn.prop('disabled', false).text('Clear Event Cache');
+					status.css('color','red').text('Request failed.');
+				});
+			});
+
 			$('#gwu-ep-test-api').on('click', function(){
 				var btn    = $(this);
 				var status = $('#gwu-ep-test-status');
@@ -391,5 +422,39 @@ class GWU_Admin {
 		} else {
 			wp_send_json_error( 'HTTP ' . $code . '. Unexpected response from subdomain API.' );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: clear event list transient cache
+	// -------------------------------------------------------------------------
+
+	public function ajax_clear_cache(): void {
+		check_ajax_referer( 'gwu_ep_clear_cache' );
+
+		if ( ! current_user_can( self::CAP_REQUIRED ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+
+		$deleted = 0;
+
+		// Upcoming events transient.
+		if ( delete_transient( 'gwu_ep_public_events' ) ) {
+			$deleted++;
+		}
+		// Also clear the stale-backup transient used during API outages.
+		delete_transient( 'gwu_ep_public_events_stale' );
+
+		// Past events transients (keyed by years 1–10).
+		for ( $y = 1; $y <= 10; $y++ ) {
+			if ( delete_transient( 'gwu_ep_past_events_' . $y ) ) {
+				$deleted++;
+			}
+		}
+
+		wp_send_json_success( array(
+			'message' => $deleted > 0
+				? 'Cache cleared (' . $deleted . ' transient(s) deleted). Next page load will fetch fresh data.'
+				: 'Cache was already empty — no transients found.',
+		) );
 	}
 }
