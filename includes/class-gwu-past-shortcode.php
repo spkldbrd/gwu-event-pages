@@ -155,9 +155,14 @@ class GWU_Past_Shortcode {
 			$location = $this->extract_city_state( $ev['location'] ?? '' );
 		}
 
-		$date     = $this->format_date_range( $ev['start'] ?? '', $ev['end'] ?? '' );
-		$web_url  = $ev['web_url'] ?? '';
-		$type     = strtolower( $ev['type_name'] ?? '' );
+		$date    = $this->format_date_range( $ev['start'] ?? '', $ev['end'] ?? '' );
+		$web_url = $ev['web_url'] ?? '';
+		$type    = strtolower( $ev['type_name'] ?? '' );
+
+		// Subaward events get a descriptive prefix instead of a badge.
+		if ( $type === 'subaward' ) {
+			$location = 'Managing Subawards ' . $location;
+		}
 
 		$out = '<span class="hpl-past-location">';
 		if ( $web_url && $web_url !== '#' ) {
@@ -169,11 +174,6 @@ class GWU_Past_Shortcode {
 
 		if ( $date ) {
 			$out .= ' <span class="hpl-past-date">' . esc_html( $date ) . '</span>';
-		}
-
-		// Badge for types that aren't standard writing/management (e.g. Subaward).
-		if ( $type && $type !== 'writing' && $type !== 'management' ) {
-			$out .= ' <span class="hpl-past-type-badge">' . esc_html( ucfirst( $ev['type_name'] ) ) . '</span>';
 		}
 
 		if ( $is_zoom ) {

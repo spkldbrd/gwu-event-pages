@@ -183,6 +183,11 @@ class GWU_Shortcode {
 			}
 		}
 
+		// Subaward events get a descriptive prefix.
+		if ( strtolower( $ev['type_name'] ?? '' ) === 'subaward' ) {
+			$title = 'Managing Subawards ' . $title;
+		}
+
 		// Date string.
 		$date_str = $this->format_date_range( $ev['start'] ?? '', $ev['end'] ?? '' );
 
