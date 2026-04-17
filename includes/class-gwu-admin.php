@@ -185,9 +185,11 @@ class GWU_Admin {
 							<option value="draft"   <?php selected( $def_status, 'draft' );   ?>>Draft</option>
 						</select>
 						<p class="description">
-							Status applied to new event marketing pages created via the Hostlinks subdomain.
-							<em>Note:</em> This setting is informational here; the actual value must be set
-							via <code>GWU_PAGE_STATUS</code> constant or the subdomain's Marketing Ops settings.
+							Status applied to new event marketing pages. <em>This dropdown is for
+							reference only.</em> The actual value is controlled by the
+							<code>GWU_PAGE_STATUS</code> constant in the <strong>Hostlinks
+							subdomain's</strong> <code>wp-config.php</code> (defaults to
+							<code>publish</code> if undefined).
 						</p>
 					</td>
 				</tr>

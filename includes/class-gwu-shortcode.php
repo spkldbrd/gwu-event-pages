@@ -32,12 +32,15 @@ class GWU_Shortcode {
 
 		$bust_cache = ( $atts['cache'] === '0' );
 
-		$payload = $bust_cache ? false : get_transient( self::TRANSIENT_KEY );
+		$payload    = $bust_cache ? false : get_transient( self::TRANSIENT_KEY );
+		$from_fresh = false;
 
 		if ( $payload === false ) {
-			$payload = $this->fetch_events();
-			if ( $payload !== null ) {
-				$ttl = max( 60, (int) get_option( GWU_Admin::OPT_CACHE_TTL, 15 ) * 60 );
+			$fetched = $this->fetch_events();
+			if ( $fetched !== null ) {
+				$payload    = $fetched;
+				$from_fresh = true;
+				$ttl        = max( 60, (int) get_option( GWU_Admin::OPT_CACHE_TTL, 15 ) * 60 );
 				set_transient( self::TRANSIENT_KEY, $payload, $ttl );
 			}
 		}
@@ -52,8 +55,10 @@ class GWU_Shortcode {
 			}
 		}
 
-		// Save a longer-lived stale backup used when the API is temporarily unreachable.
-		if ( ! empty( $payload['events'] ) ) {
+		// Only refresh the stale backup on a successful live fetch — never when
+		// we just served from stale, which would otherwise keep stale data
+		// alive indefinitely during an extended API outage.
+		if ( $from_fresh && ! empty( $payload['events'] ) ) {
 			set_transient( self::TRANSIENT_KEY . '_stale', $payload, DAY_IN_SECONDS );
 		}
 
@@ -112,9 +117,10 @@ class GWU_Shortcode {
 		$right_events = array();
 
 		foreach ( $events as $ev ) {
-			if ( $ev['column'] === 'left' ) {
+			$column = $ev['column'] ?? '';
+			if ( $column === 'left' ) {
 				$left_events[] = $ev;
-			} elseif ( $ev['column'] === 'right' ) {
+			} elseif ( $column === 'right' ) {
 				$right_events[] = $ev;
 			}
 		}
