@@ -184,7 +184,7 @@ class GWU_Shortcode {
 			$title = 'ZOOM WEBINAR';
 		} else {
 			$title = $this->extract_city_state( $ev['location'] ?? '' );
-			if ( $ev['city'] && $ev['state'] ) {
+			if ( ! empty( $ev['city'] ) && ! empty( $ev['state'] ) ) {
 				$title = $ev['city'] . ', ' . $ev['state'];
 			}
 		}
