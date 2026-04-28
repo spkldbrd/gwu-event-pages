@@ -20,6 +20,9 @@ class GWU_Admin {
 	const OPT_HMO_API    = 'gwu_ep_hmo_api';
 	const OPT_CACHE_TTL  = 'gwu_ep_cache_ttl';
 	const OPT_DEF_STATUS = 'gwu_ep_default_status';
+	const OPT_MAP_LABEL_MAP  = 'gwu_ep_map_label_view_map';
+	const OPT_MAP_LABEL_LIST = 'gwu_ep_map_label_view_list';
+	const OPT_MAP_HEIGHT       = 'gwu_ep_map_height';
 
 	// -------------------------------------------------------------------------
 	// Registration
@@ -72,6 +75,15 @@ class GWU_Admin {
 			update_option( self::OPT_HMO_API,    $api_url,   false );
 			update_option( self::OPT_CACHE_TTL,  $cache_ttl, false );
 			update_option( self::OPT_DEF_STATUS, $status,    false );
+
+			$map_label_map  = sanitize_text_field( wp_unslash( $_POST['gwu_ep_map_label_view_map'] ?? '' ) );
+			$map_label_list = sanitize_text_field( wp_unslash( $_POST['gwu_ep_map_label_view_list'] ?? '' ) );
+			$map_height_raw = trim( (string) wp_unslash( $_POST['gwu_ep_map_height'] ?? '' ) );
+			$map_height     = self::sanitize_map_height( $map_height_raw );
+
+			update_option( self::OPT_MAP_LABEL_MAP, $map_label_map, false );
+			update_option( self::OPT_MAP_LABEL_LIST, $map_label_list, false );
+			update_option( self::OPT_MAP_HEIGHT, $map_height, false );
 
 			// Bust the transient cache so next page load fetches fresh data.
 			delete_transient( 'gwu_ep_public_events' );
@@ -193,6 +205,39 @@ class GWU_Admin {
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">
+						<label for="gwu_ep_map_label_view_map">Map toggle: view map label</label>
+					</th>
+					<td>
+						<input type="text" id="gwu_ep_map_label_view_map" name="gwu_ep_map_label_view_map"
+							value="<?php echo esc_attr( get_option( self::OPT_MAP_LABEL_MAP, 'View map' ) ); ?>"
+							class="regular-text" maxlength="120">
+						<p class="description">Shown next to the map icon when the list is visible.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="gwu_ep_map_label_view_list">Map toggle: view list label</label>
+					</th>
+					<td>
+						<input type="text" id="gwu_ep_map_label_view_list" name="gwu_ep_map_label_view_list"
+							value="<?php echo esc_attr( get_option( self::OPT_MAP_LABEL_LIST, 'View list' ) ); ?>"
+							class="regular-text" maxlength="120">
+						<p class="description">Shown when the map is visible, to return to the list.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="gwu_ep_map_height">Map height</label>
+					</th>
+					<td>
+						<input type="text" id="gwu_ep_map_height" name="gwu_ep_map_height"
+							value="<?php echo esc_attr( get_option( self::OPT_MAP_HEIGHT, '420px' ) ); ?>"
+							class="regular-text" placeholder="420px">
+						<p class="description">CSS height for the map panel (e.g. <code>420px</code>, <code>50vh</code>).</p>
+					</td>
+				</tr>
 			</table>
 
 			<p class="submit">
@@ -215,6 +260,10 @@ class GWU_Admin {
 				<tr>
 					<td><code>[public_event_list cache="0"]</code></td>
 					<td>Same as above but bypasses the transient cache for this page load only.</td>
+				</tr>
+				<tr>
+					<td><code>[public_event_list enable_map="1"]</code></td>
+					<td>Same list, plus a control to open a U.S. map with state outlines and pins by state (Zoom webinars stay on the list only). Button wording and map height are configured in the fields above.</td>
 				</tr>
 			</tbody>
 		</table>
@@ -382,6 +431,20 @@ class GWU_Admin {
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Sanitize map panel height (CSS length).
+	 */
+	public static function sanitize_map_height( string $raw ): string {
+		$raw = trim( $raw );
+		if ( '' === $raw ) {
+			return '420px';
+		}
+		if ( preg_match( '/^\d+(\.\d+)?(px|vh|rem|%|em)$/i', $raw ) ) {
+			return $raw;
+		}
+		return '420px';
+	}
 
 	/**
 	 * Returns the active HMO API URL: constant overrides option, option overrides default.

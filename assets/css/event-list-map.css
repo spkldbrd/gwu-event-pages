@@ -1,0 +1,52 @@
+/* Toggle + map pane for [public_event_list enable_map="1"] */
+
+.gwu-hpl-view {
+	margin-bottom: 1.5rem;
+}
+
+.gwu-hpl-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 0.75rem;
+	margin-bottom: 1rem;
+	align-items: center;
+}
+
+.gwu-hpl-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.35rem 0.75rem;
+	font: inherit;
+	font-size: 0.95rem;
+	line-height: 1.4;
+	cursor: pointer;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #f6f7f7;
+	color: #1d2327;
+}
+
+.gwu-hpl-btn:hover {
+	background: #fff;
+	border-color: #8c8f94;
+}
+
+.gwu-hpl-btn__icon {
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+	line-height: 1;
+}
+
+.gwu-hpl-pane--map {
+	width: 100%;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.gwu-hpl-pane--map .leaflet-container {
+	font: inherit;
+}

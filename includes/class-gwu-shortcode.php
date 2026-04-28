@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Usage:
  *   [public_event_list]
  *   [public_event_list cache="0"]
+ *   [public_event_list enable_map="1"]
  *   [public_event_list left_heading="Writing Workshops" right_heading="Management Workshops"]
  */
 class GWU_Shortcode {
@@ -26,11 +27,17 @@ class GWU_Shortcode {
 	}
 
 	public function render( $atts ): string {
-		$atts = shortcode_atts( array(
-			'cache' => '1',
-		), $atts, 'public_event_list' );
+		$atts = shortcode_atts(
+			array(
+				'cache'      => '1',
+				'enable_map' => '0',
+			),
+			$atts,
+			'public_event_list'
+		);
 
-		$bust_cache = ( $atts['cache'] === '0' );
+		$bust_cache  = ( $atts['cache'] === '0' );
+		$enable_map  = in_array( strtolower( (string) $atts['enable_map'] ), array( '1', 'true', 'yes' ), true );
 
 		$payload    = $bust_cache ? false : get_transient( self::TRANSIENT_KEY );
 		$from_fresh = false;
@@ -46,7 +53,6 @@ class GWU_Shortcode {
 		}
 
 		if ( empty( $payload['events'] ) ) {
-			// Fall back to stale backup when the API is temporarily unreachable.
 			$stale = get_transient( self::TRANSIENT_KEY . '_stale' );
 			if ( $stale ) {
 				$payload = $stale;
@@ -55,14 +61,11 @@ class GWU_Shortcode {
 			}
 		}
 
-		// Only refresh the stale backup on a successful live fetch — never when
-		// we just served from stale, which would otherwise keep stale data
-		// alive indefinitely during an extended API outage.
 		if ( $from_fresh && ! empty( $payload['events'] ) ) {
 			set_transient( self::TRANSIENT_KEY . '_stale', $payload, DAY_IN_SECONDS );
 		}
 
-		return $this->render_list( $payload );
+		return $this->render_list( $payload, $enable_map );
 	}
 
 	// -------------------------------------------------------------------------
@@ -97,7 +100,7 @@ class GWU_Shortcode {
 	// Render
 	// -------------------------------------------------------------------------
 
-	private function render_list( array $payload ): string {
+	private function render_list( array $payload, bool $enable_map ): string {
 		$events = $payload['events'];
 		$meta   = $payload['meta'] ?? array();
 
@@ -173,46 +176,146 @@ class GWU_Shortcode {
 
 		</div><!-- .hpl-wrapper -->
 		<?php
+		$list_html = ob_get_clean();
+
+		if ( ! $enable_map ) {
+			return $list_html;
+		}
+
+		return $this->wrap_list_with_map( $list_html, $payload, $zoom_east, $zoom_west, $zoom_default );
+	}
+
+	/**
+	 * @param string               $list_html Inner two-column markup.
+	 * @param array<string, mixed> $payload   Full API payload (events + meta).
+	 */
+	private function wrap_list_with_map(
+		string $list_html,
+		array $payload,
+		string $zoom_east,
+		string $zoom_west,
+		string $zoom_default
+	): string {
+		$uid       = wp_unique_id( 'gwu-hpl-' );
+		$list_id   = $uid . '-list';
+		$map_id    = $uid . '-map';
+		$label_map = (string) get_option( GWU_Admin::OPT_MAP_LABEL_MAP, 'View map' );
+		$label_list = (string) get_option( GWU_Admin::OPT_MAP_LABEL_LIST, 'View list' );
+		$map_height = GWU_Admin::sanitize_map_height( (string) get_option( GWU_Admin::OPT_MAP_HEIGHT, '420px' ) );
+
+		$markers = $this->build_map_markers( $payload['events'] ?? array(), $zoom_east, $zoom_west, $zoom_default );
+		$this->enqueue_map_assets();
+
+		$markers_json = wp_json_encode(
+			$markers,
+			JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+		);
+		if ( false === $markers_json ) {
+			$markers_json = '[]';
+		}
+
+		ob_start();
+		?>
+		<div class="gwu-hpl-view" data-gwu-hpl-view="list" id="<?php echo esc_attr( $uid ); ?>" data-gwu-markers="<?php echo esc_attr( $markers_json ); ?>">
+			<div class="gwu-hpl-toolbar" role="toolbar" aria-label="<?php echo esc_attr( 'Event list display' ); ?>">
+				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--map" data-gwu-hpl-show="map" aria-controls="<?php echo esc_attr( $map_id ); ?>">
+					<span class="gwu-hpl-btn__icon dashicons dashicons-location-alt" aria-hidden="true"></span>
+					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_map ); ?></span>
+				</button>
+				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--list" data-gwu-hpl-show="list" aria-controls="<?php echo esc_attr( $list_id ); ?>" hidden>
+					<span class="gwu-hpl-btn__icon dashicons dashicons-list-view" aria-hidden="true"></span>
+					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_list ); ?></span>
+				</button>
+			</div>
+			<div id="<?php echo esc_attr( $list_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--list" role="region" aria-label="<?php echo esc_attr( 'Event list' ); ?>">
+				<?php echo $list_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</div>
+			<div id="<?php echo esc_attr( $map_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--map" role="region" aria-label="<?php echo esc_attr( 'United States map of events' ); ?>" hidden style="<?php echo esc_attr( 'height:' . $map_height . ';min-height:280px;' ); ?>">
+			</div>
+		</div>
+		<?php
 		return ob_get_clean();
 	}
 
+	/**
+	 * @param array<int, array<string, mixed>> $events Raw events from API.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function build_map_markers( array $events, string $zoom_east, string $zoom_west, string $zoom_default ): array {
+		$out = array();
+		foreach ( $events as $ev ) {
+			if ( ! is_array( $ev ) ) {
+				continue;
+			}
+			$pin = GWU_Map_Coords::pin_for_event( $ev );
+			if ( null === $pin ) {
+				continue;
+			}
+			$title = $this->get_event_title_text( $ev, $zoom_east, $zoom_west, $zoom_default );
+			$date  = $this->format_date_range( $ev['start'] ?? '', $ev['end'] ?? '' );
+			$time  = $this->get_event_time_text( $ev, $zoom_east, $zoom_west, $zoom_default );
+			$url   = isset( $ev['web_url'] ) ? esc_url_raw( (string) $ev['web_url'] ) : '';
+
+			$out[] = array(
+				'id'    => (int) ( $ev['id'] ?? 0 ),
+				'lat'   => $pin['lat'],
+				'lng'   => $pin['lng'],
+				'title' => $title,
+				'date'  => $date,
+				'time'  => $time,
+				'url'   => $url,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $markers
+	 */
+	private function enqueue_map_assets(): void {
+		wp_enqueue_style( 'dashicons' );
+
+		wp_enqueue_style(
+			'leaflet',
+			'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+			array(),
+			'1.9.4'
+		);
+		wp_enqueue_script(
+			'leaflet',
+			'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+			array(),
+			'1.9.4',
+			true
+		);
+
+		wp_enqueue_style(
+			'gwu-event-list-map',
+			GWU_EP_PLUGIN_URL . 'assets/css/event-list-map.css',
+			array( 'leaflet', 'dashicons' ),
+			GWU_EP_VERSION
+		);
+		wp_enqueue_script(
+			'gwu-event-list-map',
+			GWU_EP_PLUGIN_URL . 'assets/js/event-list-map.js',
+			array( 'leaflet' ),
+			GWU_EP_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'gwu-event-list-map',
+			'gwuEpMapDefaults',
+			array(
+				'geoJsonUrl' => GWU_EP_PLUGIN_URL . 'assets/data/us-states.geojson',
+			)
+		);
+	}
+
 	private function render_event( array $ev, string $zoom_east, string $zoom_west, string $zoom_default ): string {
-		$is_zoom = ( ( $ev['zoom'] ?? '' ) === 'yes' );
-
-		// Title.
-		if ( $is_zoom ) {
-			$title = 'ZOOM WEBINAR';
-		} else {
-			$title = $this->extract_city_state( $ev['location'] ?? '' );
-			if ( ! empty( $ev['city'] ) && ! empty( $ev['state'] ) ) {
-				$title = $ev['city'] . ', ' . $ev['state'];
-			}
-		}
-
-		// Subaward events get a descriptive prefix.
-		if ( strtolower( $ev['type_name'] ?? '' ) === 'subaward' ) {
-			$title = 'Managing Subawards ' . $title;
-		}
-
-		// Date string.
+		$title    = $this->get_event_title_text( $ev, $zoom_east, $zoom_west, $zoom_default );
 		$date_str = $this->format_date_range( $ev['start'] ?? '', $ev['end'] ?? '' );
-
-		// Zoom time string.
-		$time_str = '';
-		if ( $is_zoom ) {
-			if ( ! empty( $ev['zoom_time'] ) ) {
-				$time_str = $ev['zoom_time'];
-			} else {
-				$haystack = strtolower( ( $ev['location'] ?? '' ) . ' ' . ( $ev['cvent_title'] ?? '' ) );
-				if ( preg_match( '/\b(est|east|eastern)\b/', $haystack ) ) {
-					$time_str = $zoom_east;
-				} elseif ( preg_match( '/\b(pst|west|western|pacific)\b/', $haystack ) ) {
-					$time_str = $zoom_west;
-				} else {
-					$time_str = $zoom_default;
-				}
-			}
-		}
+		$time_str = $this->get_event_time_text( $ev, $zoom_east, $zoom_west, $zoom_default );
 
 		$web_url = esc_url( $ev['web_url'] ?? '' );
 
@@ -231,12 +334,54 @@ class GWU_Shortcode {
 		} else {
 			$out .= '<span class="hpl-details-link hpl-details-pending">details</span>';
 		}
-		if ( $is_zoom ) {
+		if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
 			$out .= ' <span class="hpl-zoom-badge">Zoom</span>';
 		}
 		$out .= '</div>';
 
 		return $out;
+	}
+
+	/**
+	 * @param array<string, mixed> $ev Event row.
+	 */
+	private function get_event_title_text( array $ev, string $zoom_east, string $zoom_west, string $zoom_default ): string {
+		$is_zoom = ( ( $ev['zoom'] ?? '' ) === 'yes' );
+
+		if ( $is_zoom ) {
+			$title = 'ZOOM WEBINAR';
+		} else {
+			$title = $this->extract_city_state( $ev['location'] ?? '' );
+			if ( ! empty( $ev['city'] ) && ! empty( $ev['state'] ) ) {
+				$title = $ev['city'] . ', ' . $ev['state'];
+			}
+		}
+
+		if ( strtolower( $ev['type_name'] ?? '' ) === 'subaward' ) {
+			$title = 'Managing Subawards ' . $title;
+		}
+
+		return $title;
+	}
+
+	/**
+	 * @param array<string, mixed> $ev Event row.
+	 */
+	private function get_event_time_text( array $ev, string $zoom_east, string $zoom_west, string $zoom_default ): string {
+		if ( ( $ev['zoom'] ?? '' ) !== 'yes' ) {
+			return '';
+		}
+		if ( ! empty( $ev['zoom_time'] ) ) {
+			return (string) $ev['zoom_time'];
+		}
+		$haystack = strtolower( ( $ev['location'] ?? '' ) . ' ' . ( $ev['cvent_title'] ?? '' ) );
+		if ( preg_match( '/\b(est|east|eastern)\b/', $haystack ) ) {
+			return $zoom_east;
+		}
+		if ( preg_match( '/\b(pst|west|western|pacific)\b/', $haystack ) ) {
+			return $zoom_west;
+		}
+		return $zoom_default;
 	}
 
 	// -------------------------------------------------------------------------

@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -25,14 +25,20 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 2. Activate the plugin in the WordPress admin.
 3. Optionally add the following constant to `wp-config.php` if the Hostlinks subdomain URL ever changes:
    `define( 'GWU_EP_HMO_API', 'https://hostlinks.grantwritingusa.com/wp-json/hmo/v1' );`
-4. Add `[public_event_list]` to any page where you want the public event listing.
+4. Add `[public_event_list]` to any page where you want the public event listing. Use `[public_event_list enable_map="1"]` to include the map toggle.
 
 == Shortcode ==
 
 `[public_event_list]`           — Renders the cached two-column event list.
 `[public_event_list cache="0"]` — Forces a fresh fetch (useful when testing).
 
+`[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON; pins use state-level coordinates with a small spread). Zoom-only events appear on the list only.
+
 == Changelog ==
+
+= 1.2.0 =
+* Optional `[public_event_list enable_map="1"]`: list default, "View map" / "View list" toggle with configurable labels and map height in Event Pages settings.
+* Bundled simplified US states GeoJSON for outlines (Leaflet + OpenStreetMap tiles).
 
 = 1.0.0 =
 * Initial release.
