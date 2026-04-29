@@ -164,13 +164,14 @@ class GWU_Map_Coords {
 	}
 
 	/**
-	 * Offset for city-level pins (~1.5 km) so same-city workshops separate slightly.
+	 * Offset for city-level pins (~5–6 km radius) so multiple same-city workshops
+	 * stay visually distinct without zooming far in.
 	 *
 	 * @return array{0: float, 1: float} lat, lng deltas in degrees.
 	 */
 	private static function jitter_city( int $id ): array {
 		$t = ( ( $id * 137 ) % 6283 ) / 1000.0 * M_PI;
-		$r = 0.014;
+		$r = 0.048;
 		return array( $r * sin( $t ), $r * cos( $t ) );
 	}
 
