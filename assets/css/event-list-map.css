@@ -176,12 +176,13 @@
 .gwu-hpl-map-pin-note {
 	flex: 0 0 auto;
 	margin: 0;
-	padding: 0.5rem 0.65rem 0.55rem;
+	padding: 0.45rem 0.65rem 0.45rem;
 	border-top: 1px solid #e8e8e8;
 	background: #fafafa;
-	font-size: 0.82rem;
-	line-height: 1.45;
-	color: #444;
+	font-size: 0.95rem;
+	font-weight: 500;
+	line-height: 1.35;
+	color: inherit;
 	text-align: left;
 }
 
