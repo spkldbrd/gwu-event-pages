@@ -280,6 +280,13 @@ class GWU_Shortcode {
 							</div>
 						</div>
 					</div>
+					<p class="gwu-hpl-map-pin-note">
+						<?php
+						echo esc_html(
+							'Pins show the general area of each workshop. When more than one event is in the same city, we spread pins a little so you can tap each one—they\'re not meant as exact addresses.'
+						);
+						?>
+					</p>
 				</div>
 			</div>
 		</div>
