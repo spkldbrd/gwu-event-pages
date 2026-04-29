@@ -257,7 +257,7 @@ class GWU_Shortcode {
 							<input type="checkbox" class="gwu-hpl-filter-col" value="right" checked>
 							<?php echo esc_html( 'Grant Management' ); ?>
 						</label>
-						<em class="gwu-hpl-map-filters__note"><?php echo esc_html( "*In-Person events only. switch to 'list' view to see Zoom events." ); ?></em>
+						<em class="gwu-hpl-map-filters__note"><?php echo esc_html( "*In-Person events only. Switch to 'list' view to see Zoom events." ); ?></em>
 					</div>
 					<div class="gwu-hpl-map-canvas" role="presentation"></div>
 				</div>

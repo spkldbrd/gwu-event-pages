@@ -117,7 +117,7 @@
 
 .gwu-hpl-map-filters {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
 	gap: 0.35rem 0.85rem;
 	padding: 0.45rem 0.65rem 0.35rem;
@@ -125,6 +125,8 @@
 	background: #fafafa;
 	font-size: 0.95rem;
 	line-height: 1.35;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
 }
 
 .gwu-hpl-map-filters__prefix {
@@ -145,13 +147,14 @@
 }
 
 .gwu-hpl-map-filters__note {
-	flex: 1 1 100%;
-	margin: 0.2rem 0 0;
+	flex: 0 0 auto;
+	margin: 0;
 	padding: 0;
 	font-style: italic;
 	font-size: 0.86em;
 	font-weight: 400;
 	color: #444;
+	white-space: nowrap;
 }
 
 .gwu-hpl-map-canvas {
