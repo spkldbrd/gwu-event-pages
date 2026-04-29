@@ -23,6 +23,16 @@ class GWU_Admin {
 	const OPT_MAP_LABEL_MAP  = 'gwu_ep_map_label_view_map';
 	const OPT_MAP_LABEL_LIST = 'gwu_ep_map_label_view_list';
 	const OPT_MAP_HEIGHT       = 'gwu_ep_map_height';
+	const OPT_MAP_INTRO_H3     = 'gwu_ep_map_intro_h3';
+	const OPT_MAP_INTRO_P      = 'gwu_ep_map_intro_p';
+
+	public static function default_map_intro_h3(): string {
+		return 'Find An Upcoming Workshop In Your Area';
+	}
+
+	public static function default_map_intro_p(): string {
+		return 'Workshops are In-Person events unless specified as a "ZOOM WEBINAR" with the zoom icon.';
+	}
 
 	// -------------------------------------------------------------------------
 	// Registration
@@ -81,9 +91,20 @@ class GWU_Admin {
 			$map_height_raw = trim( (string) wp_unslash( $_POST['gwu_ep_map_height'] ?? '' ) );
 			$map_height     = self::sanitize_map_height( $map_height_raw );
 
+			$map_intro_h3 = trim( sanitize_text_field( wp_unslash( $_POST['gwu_ep_map_intro_h3'] ?? '' ) ) );
+			$map_intro_p  = trim( sanitize_textarea_field( wp_unslash( $_POST['gwu_ep_map_intro_p'] ?? '' ) ) );
+			if ( $map_intro_h3 === '' ) {
+				$map_intro_h3 = self::default_map_intro_h3();
+			}
+			if ( $map_intro_p === '' ) {
+				$map_intro_p = self::default_map_intro_p();
+			}
+
 			update_option( self::OPT_MAP_LABEL_MAP, $map_label_map, false );
 			update_option( self::OPT_MAP_LABEL_LIST, $map_label_list, false );
 			update_option( self::OPT_MAP_HEIGHT, $map_height, false );
+			update_option( self::OPT_MAP_INTRO_H3, $map_intro_h3, false );
+			update_option( self::OPT_MAP_INTRO_P, $map_intro_p, false );
 
 			// Bust the transient cache so next page load fetches fresh data.
 			delete_transient( 'gwu_ep_public_events' );
@@ -203,6 +224,26 @@ class GWU_Admin {
 							subdomain's</strong> <code>wp-config.php</code> (defaults to
 							<code>publish</code> if undefined).
 						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="gwu_ep_map_intro_h3">Map header (H3)</label>
+					</th>
+					<td>
+						<input type="text" id="gwu_ep_map_intro_h3" name="gwu_ep_map_intro_h3"
+							value="<?php echo esc_attr( get_option( self::OPT_MAP_INTRO_H3, self::default_map_intro_h3() ) ); ?>"
+							class="large-text" maxlength="300">
+						<p class="description">Bold and underlined on the front end. Leave blank and save to restore the default heading.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="gwu_ep_map_intro_p">Map header (intro paragraph)</label>
+					</th>
+					<td>
+						<textarea id="gwu_ep_map_intro_p" name="gwu_ep_map_intro_p" rows="3" class="large-text" maxlength="800"><?php echo esc_textarea( get_option( self::OPT_MAP_INTRO_P, self::default_map_intro_p() ) ); ?></textarea>
+						<p class="description">Italic and bold on the front end. Leave blank and save to restore the default paragraph.</p>
 					</td>
 				</tr>
 				<tr>

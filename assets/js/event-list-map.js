@@ -129,12 +129,19 @@
 			return;
 		}
 
+		function setView(mode) {
+			var isMap = mode === 'map';
+			root.setAttribute('data-gwu-hpl-view', mode);
+			listPane.hidden = isMap;
+			mapPane.hidden = !isMap;
+			mapBtn.classList.toggle('is-active', isMap);
+			listBtn.classList.toggle('is-active', !isMap);
+			mapBtn.setAttribute('aria-pressed', isMap ? 'true' : 'false');
+			listBtn.setAttribute('aria-pressed', !isMap ? 'true' : 'false');
+		}
+
 		mapBtn.addEventListener('click', function () {
-			root.setAttribute('data-gwu-hpl-view', 'map');
-			listPane.hidden = true;
-			mapPane.hidden = false;
-			mapBtn.hidden = true;
-			listBtn.hidden = false;
+			setView('map');
 			var leafletMap = initMap(root, mapPane);
 			window.requestAnimationFrame(function () {
 				leafletMap.invalidateSize(true);
@@ -142,11 +149,7 @@
 		});
 
 		listBtn.addEventListener('click', function () {
-			root.setAttribute('data-gwu-hpl-view', 'list');
-			listPane.hidden = false;
-			mapPane.hidden = true;
-			mapBtn.hidden = false;
-			listBtn.hidden = true;
+			setView('list');
 		});
 	}
 

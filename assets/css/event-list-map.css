@@ -1,15 +1,70 @@
-/* Toggle + map pane for [public_event_list enable_map="1"] */
+/* Map-enabled public event list: intro row + toggle + map pane */
 
 .gwu-hpl-view {
 	margin-bottom: 1.5rem;
 }
 
-.gwu-hpl-toolbar {
+/* 4/5 intro text (left) + 1/5 buttons (right), aligned to top */
+.gwu-hpl-intro {
+	display: grid;
+	grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+	gap: 0.75rem 1.25rem;
+	align-items: start;
+	margin-bottom: 1.25rem;
+}
+
+.gwu-hpl-intro__text {
+	text-align: left;
+	min-width: 0;
+}
+
+.gwu-hpl-intro__title {
+	margin: 0 0 0.4rem;
+	font-size: 1.25em;
+	font-weight: 400;
+	line-height: 1.3;
+	color: inherit;
+	text-decoration: underline;
+}
+
+.gwu-hpl-intro__title strong {
+	font-weight: 700;
+}
+
+.gwu-hpl-intro__lede {
+	margin: 0;
+	font-size: 0.98em;
+	line-height: 1.45;
+	color: inherit;
+}
+
+.gwu-hpl-intro__lede strong {
+	font-weight: 700;
+}
+
+.gwu-hpl-intro__lede strong em {
+	font-style: italic;
+	font-weight: 700;
+}
+
+.gwu-hpl-intro__actions {
+	justify-self: end;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem 0.75rem;
-	margin-bottom: 1rem;
-	align-items: center;
+	gap: 0.5rem;
+	align-items: flex-start;
+	justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+	.gwu-hpl-intro {
+		grid-template-columns: 1fr;
+	}
+
+	.gwu-hpl-intro__actions {
+		justify-self: stretch;
+		justify-content: flex-start;
+	}
 }
 
 .gwu-hpl-btn {
@@ -30,6 +85,12 @@
 .gwu-hpl-btn:hover {
 	background: #fff;
 	border-color: #8c8f94;
+}
+
+.gwu-hpl-btn.is-active {
+	background: #fff;
+	border-color: #8c8f94;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .gwu-hpl-btn__icon {

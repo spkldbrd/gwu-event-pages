@@ -214,19 +214,34 @@ class GWU_Shortcode {
 			$markers_json = '[]';
 		}
 
+		$h3_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_H3, GWU_Admin::default_map_intro_h3() ) );
+		if ( $h3_text === '' ) {
+			$h3_text = GWU_Admin::default_map_intro_h3();
+		}
+		$p_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_P, GWU_Admin::default_map_intro_p() ) );
+		if ( $p_text === '' ) {
+			$p_text = GWU_Admin::default_map_intro_p();
+		}
+
 		ob_start();
 		?>
 		<div class="gwu-hpl-view" data-gwu-hpl-view="list" id="<?php echo esc_attr( $uid ); ?>" data-gwu-markers="<?php echo esc_attr( $markers_json ); ?>">
-			<div class="gwu-hpl-toolbar" role="toolbar" aria-label="<?php echo esc_attr( 'Event list display' ); ?>">
-				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--map" data-gwu-hpl-show="map" aria-controls="<?php echo esc_attr( $map_id ); ?>">
-					<span class="gwu-hpl-btn__icon dashicons dashicons-location-alt" aria-hidden="true"></span>
-					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_map ); ?></span>
-				</button>
-				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--list" data-gwu-hpl-show="list" aria-controls="<?php echo esc_attr( $list_id ); ?>" hidden>
-					<span class="gwu-hpl-btn__icon dashicons dashicons-list-view" aria-hidden="true"></span>
-					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_list ); ?></span>
-				</button>
-			</div>
+			<header class="gwu-hpl-intro">
+				<div class="gwu-hpl-intro__text">
+					<h3 class="gwu-hpl-intro__title"><strong><?php echo esc_html( $h3_text ); ?></strong></h3>
+					<p class="gwu-hpl-intro__lede"><strong><em><?php echo esc_html( $p_text ); ?></em></strong></p>
+				</div>
+				<div class="gwu-hpl-intro__actions" role="toolbar" aria-label="<?php echo esc_attr( 'List and map display' ); ?>">
+					<button type="button" class="gwu-hpl-btn gwu-hpl-btn--map" data-gwu-hpl-show="map" aria-controls="<?php echo esc_attr( $map_id ); ?>" aria-pressed="false">
+						<span class="gwu-hpl-btn__icon dashicons dashicons-location-alt" aria-hidden="true"></span>
+						<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_map ); ?></span>
+					</button>
+					<button type="button" class="gwu-hpl-btn gwu-hpl-btn--list is-active" data-gwu-hpl-show="list" aria-controls="<?php echo esc_attr( $list_id ); ?>" aria-pressed="true">
+						<span class="gwu-hpl-btn__icon dashicons dashicons-list-view" aria-hidden="true"></span>
+						<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_list ); ?></span>
+					</button>
+				</div>
+			</header>
 			<div id="<?php echo esc_attr( $list_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--list" role="region" aria-label="<?php echo esc_attr( 'Event list' ); ?>">
 				<?php echo $list_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
