@@ -434,11 +434,7 @@ class GWU_Shortcode {
 	// -------------------------------------------------------------------------
 
 	private function extract_city_state( string $location ): string {
-		$location = trim( $location );
-		if ( preg_match( '/^([A-Za-z][A-Za-z0-9\s\/\-\.]+,\s*[A-Z]{2})\b/u', $location, $m ) ) {
-			return trim( $m[1] );
-		}
-		return $location;
+		return GWU_Map_Coords::format_city_state_line( $location );
 	}
 
 	private function format_date_range( string $start, string $end ): string {

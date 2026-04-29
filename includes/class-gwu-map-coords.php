@@ -78,7 +78,7 @@ class GWU_Map_Coords {
 		}
 
 		$abbr = self::state_abbr( $ev );
-		$city = trim( (string) ( $ev['city'] ?? '' ) );
+		$city = self::city_for_geocode( $ev );
 		$id   = (int) ( $ev['id'] ?? 0 );
 
 		if ( '' !== $city && preg_match( '/^[A-Z]{2}$/', $abbr ) ) {
@@ -105,6 +105,47 @@ class GWU_Map_Coords {
 			'lat' => $latf,
 			'lng' => $lngf,
 		);
+	}
+
+	/**
+	 * Parse a leading "City, ST" segment from a location string (same rule as list titles).
+	 *
+	 * @return array{city: string, state: string}|null
+	 */
+	public static function match_location_city_state( string $location ): ?array {
+		$location = trim( $location );
+		if ( ! preg_match( '/^([A-Za-z][A-Za-z0-9\s\/\-\.]+),\s*([A-Z]{2})\b/u', $location, $m ) ) {
+			return null;
+		}
+		return array(
+			'city'  => trim( $m[1] ),
+			'state' => $m[2],
+		);
+	}
+
+	/**
+	 * City + state line for display when the API omits structured city/state fields.
+	 */
+	public static function format_city_state_line( string $location ): string {
+		$parsed = self::match_location_city_state( $location );
+		if ( null !== $parsed ) {
+			return $parsed['city'] . ', ' . $parsed['state'];
+		}
+		return trim( $location );
+	}
+
+	/**
+	 * City name for geocoding: API `city`, else parsed from `location` "City, ST".
+	 *
+	 * @param array<string, mixed> $ev Event row.
+	 */
+	private static function city_for_geocode( array $ev ): string {
+		$c = trim( (string) ( $ev['city'] ?? '' ) );
+		if ( '' !== $c ) {
+			return $c;
+		}
+		$parsed = self::match_location_city_state( (string) ( $ev['location'] ?? '' ) );
+		return null !== $parsed ? $parsed['city'] : '';
 	}
 
 	/**

@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.6
+Stable tag: 1.2.7
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -32,9 +32,12 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[public_event_list]`           — Renders the cached two-column event list.
 `[public_event_list cache="0"]` — Forces a fresh fetch (useful when testing).
 
-`[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (OpenStreetMap Nominatim, cached in WordPress transients) when both are present, with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
+`[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (from API fields or parsed from the location line as "City, ST"; OpenStreetMap Nominatim, cached in WordPress transients), with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
 
 == Changelog ==
+
+= 1.2.7 =
+* Map geocoding: when REST `city` is empty, derive the city from the leading `City, ST` segment of `location` (same pattern as list titles) so Nominatim runs instead of always falling back to the state centroid.
 
 = 1.2.6 =
 * Map pins: geocode city + state to coordinates (cached ~90 days; polite spacing to Nominatim). Fallback to previous state-centroid + spread when city/state is missing or lookup fails.
