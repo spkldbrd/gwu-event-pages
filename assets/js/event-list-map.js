@@ -1,5 +1,5 @@
 /**
- * List / map toggle and Leaflet map for [public_event_list enable_map="1"].
+ * List / map toggle, Leaflet map, and Grant Writing / Grant Management filters.
  */
 (function () {
 	'use strict';
@@ -50,35 +50,94 @@
 		return html;
 	}
 
-	function initMap(root, mapEl) {
-		if (mapEl._gwuLeafletMap) {
-			return mapEl._gwuLeafletMap;
+	function readColumnFilters(mapPane) {
+		var leftEl = mapPane.querySelector('.gwu-hpl-filter-col[value="left"]');
+		var rightEl = mapPane.querySelector('.gwu-hpl-filter-col[value="right"]');
+		return {
+			left: leftEl ? leftEl.checked : true,
+			right: rightEl ? rightEl.checked : true,
+		};
+	}
+
+	function markerMatchesFilters(m, f) {
+		var col = m.column || '';
+		if (col === 'left') {
+			return f.left;
 		}
+		if (col === 'right') {
+			return f.right;
+		}
+		if (!f.left && !f.right) {
+			return false;
+		}
+		return true;
+	}
+
+	function applyMarkers(markerGroup, markersData, map) {
+		var mapPane = markerGroup._gwuMapPane;
+		var f = readColumnFilters(mapPane);
+		markerGroup.clearLayers();
+		markersData.forEach(function (m) {
+			if (!markerMatchesFilters(m, f)) {
+				return;
+			}
+			if (typeof m.lat !== 'number' || typeof m.lng !== 'number') {
+				return;
+			}
+			L.marker([m.lat, m.lng]).bindPopup(markerPopupHtml(m)).addTo(markerGroup);
+		});
+		var b = markerGroup.getBounds();
+		if (b.isValid()) {
+			map.fitBounds(b.pad(0.14));
+		} else {
+			map.setView([39.5, -98.35], 4);
+		}
+		map.invalidateSize(true);
+	}
+
+	function initMap(root, mapPane) {
+		var canvas = mapPane.querySelector('.gwu-hpl-map-canvas');
+		if (!canvas) {
+			canvas = mapPane;
+		}
+
+		if (canvas._gwuLeafletMap) {
+			applyMarkers(canvas._gwuMarkerGroup, canvas._gwuMarkersData, canvas._gwuLeafletMap);
+			return canvas._gwuLeafletMap;
+		}
+
 		fixLeafletIcons();
 
-		var markers = parseMarkers(root);
+		var markersData = parseMarkers(root);
+		canvas._gwuMarkersData = markersData;
 		var cfg = window.gwuEpMapDefaults || {};
 		var geoUrl = cfg.geoJsonUrl || '';
 
-		var map = L.map(mapEl, { scrollWheelZoom: false });
+		var map = L.map(canvas, { scrollWheelZoom: false });
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			maxZoom: 18,
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 		}).addTo(map);
 
-		var markerGroup = L.featureGroup();
+		var markerGroup = L.featureGroup().addTo(map);
+		markerGroup._gwuMapPane = mapPane;
 
-		function finishLayout() {
-			if (markerGroup.getLayers().length) {
-				markerGroup.addTo(map);
-			}
-			var b = markerGroup.getBounds();
-			if (b.isValid()) {
-				map.fitBounds(b.pad(0.14));
-			} else {
-				map.setView([39.5, -98.35], 4);
-			}
-			map.invalidateSize(true);
+		canvas._gwuLeafletMap = map;
+		canvas._gwuMarkerGroup = markerGroup;
+
+		if (!mapPane._gwuFilterWired) {
+			mapPane._gwuFilterWired = true;
+			mapPane.querySelectorAll('.gwu-hpl-filter-col').forEach(function (cb) {
+				cb.addEventListener('change', function () {
+					if (canvas._gwuLeafletMap && canvas._gwuMarkerGroup) {
+						applyMarkers(canvas._gwuMarkerGroup, canvas._gwuMarkersData, canvas._gwuLeafletMap);
+					}
+				});
+			});
+		}
+
+		function afterGeo() {
+			applyMarkers(markerGroup, markersData, map);
 		}
 
 		if (geoUrl) {
@@ -97,26 +156,11 @@
 					}).addTo(map);
 				})
 				.catch(function () {})
-				.finally(function () {
-					markers.forEach(function (m) {
-						if (typeof m.lat !== 'number' || typeof m.lng !== 'number') {
-							return;
-						}
-						L.marker([m.lat, m.lng]).bindPopup(markerPopupHtml(m)).addTo(markerGroup);
-					});
-					finishLayout();
-				});
+				.finally(afterGeo);
 		} else {
-			markers.forEach(function (m) {
-				if (typeof m.lat !== 'number' || typeof m.lng !== 'number') {
-					return;
-				}
-				L.marker([m.lat, m.lng]).bindPopup(markerPopupHtml(m)).addTo(markerGroup);
-			});
-			finishLayout();
+			afterGeo();
 		}
 
-		mapEl._gwuLeafletMap = map;
 		return map;
 	}
 

@@ -274,9 +274,9 @@ class GWU_Admin {
 					</th>
 					<td>
 						<input type="text" id="gwu_ep_map_height" name="gwu_ep_map_height"
-							value="<?php echo esc_attr( get_option( self::OPT_MAP_HEIGHT, '420px' ) ); ?>"
-							class="regular-text" placeholder="420px">
-						<p class="description">CSS height for the map panel (e.g. <code>420px</code>, <code>50vh</code>).</p>
+							value="<?php echo esc_attr( get_option( self::OPT_MAP_HEIGHT, '620px' ) ); ?>"
+							class="regular-text" placeholder="620px">
+						<p class="description">CSS height for the map panel (default 620px; e.g. <code>620px</code>, <code>50vh</code>).</p>
 					</td>
 				</tr>
 			</table>
@@ -479,12 +479,12 @@ class GWU_Admin {
 	public static function sanitize_map_height( string $raw ): string {
 		$raw = trim( $raw );
 		if ( '' === $raw ) {
-			return '420px';
+			return '620px';
 		}
 		if ( preg_match( '/^\d+(\.\d+)?(px|vh|rem|%|em)$/i', $raw ) ) {
 			return $raw;
 		}
-		return '420px';
+		return '620px';
 	}
 
 	/**

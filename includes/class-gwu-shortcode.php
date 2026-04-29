@@ -201,7 +201,7 @@ class GWU_Shortcode {
 		$map_id    = $uid . '-map';
 		$label_map = (string) get_option( GWU_Admin::OPT_MAP_LABEL_MAP, 'View map' );
 		$label_list = (string) get_option( GWU_Admin::OPT_MAP_LABEL_LIST, 'View list' );
-		$map_height = GWU_Admin::sanitize_map_height( (string) get_option( GWU_Admin::OPT_MAP_HEIGHT, '420px' ) );
+		$map_height = GWU_Admin::sanitize_map_height( (string) get_option( GWU_Admin::OPT_MAP_HEIGHT, '620px' ) );
 
 		$markers = $this->build_map_markers( $payload['events'] ?? array(), $zoom_east, $zoom_west, $zoom_default );
 		$this->enqueue_map_assets();
@@ -245,7 +245,22 @@ class GWU_Shortcode {
 			<div id="<?php echo esc_attr( $list_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--list" role="region" aria-label="<?php echo esc_attr( 'Event list' ); ?>">
 				<?php echo $list_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
-			<div id="<?php echo esc_attr( $map_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--map" role="region" aria-label="<?php echo esc_attr( 'United States map of events' ); ?>" hidden style="<?php echo esc_attr( 'height:' . $map_height . ';min-height:280px;' ); ?>">
+			<div id="<?php echo esc_attr( $map_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--map" role="region" aria-label="<?php echo esc_attr( 'United States map of events' ); ?>" hidden style="<?php echo esc_attr( 'height:' . $map_height . ';min-height:480px;' ); ?>">
+				<div class="gwu-hpl-map-shell">
+					<div class="gwu-hpl-map-filters">
+						<span class="gwu-hpl-map-filters__prefix"><?php echo esc_html( 'Filter:' ); ?></span>
+						<label class="gwu-hpl-map-filters__opt">
+							<input type="checkbox" class="gwu-hpl-filter-col" value="left" checked>
+							<?php echo esc_html( 'Grant Writing' ); ?>
+						</label>
+						<label class="gwu-hpl-map-filters__opt">
+							<input type="checkbox" class="gwu-hpl-filter-col" value="right" checked>
+							<?php echo esc_html( 'Grant Management' ); ?>
+						</label>
+						<em class="gwu-hpl-map-filters__note"><?php echo esc_html( "*In-Person events only. switch to 'list' view to see Zoom events." ); ?></em>
+					</div>
+					<div class="gwu-hpl-map-canvas" role="presentation"></div>
+				</div>
 			</div>
 		</div>
 		<?php
@@ -272,13 +287,14 @@ class GWU_Shortcode {
 			$url   = isset( $ev['web_url'] ) ? esc_url_raw( (string) $ev['web_url'] ) : '';
 
 			$out[] = array(
-				'id'    => (int) ( $ev['id'] ?? 0 ),
-				'lat'   => $pin['lat'],
-				'lng'   => $pin['lng'],
-				'title' => $title,
-				'date'  => $date,
-				'time'  => $time,
-				'url'   => $url,
+				'id'     => (int) ( $ev['id'] ?? 0 ),
+				'lat'    => $pin['lat'],
+				'lng'    => $pin['lng'],
+				'title'  => $title,
+				'date'   => $date,
+				'time'   => $time,
+				'url'    => $url,
+				'column' => (string) ( $ev['column'] ?? '' ),
 			);
 		}
 		return $out;
