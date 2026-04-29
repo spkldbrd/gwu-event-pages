@@ -37,7 +37,7 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 == Changelog ==
 
 = 1.2.5 =
-* Map: brief overlay hint on first open (double-click to zoom, drag to pan); fades after interaction or a few seconds.
+* Map: brief overlay hint on first open (double-click to zoom, drag to move); fades after interaction or a few seconds.
 
 = 1.2.4 =
 * Map filter: third checkbox "Managing Subawards" (default on). In-person Subaward pins follow this control separately from Grant Writing / Grant Management.
