@@ -1,5 +1,5 @@
 /**
- * List / map toggle, Leaflet map, and Grant Writing / Grant Management filters.
+ * List / map toggle, Leaflet map, and map filters (Grant Writing, Grant Management, Subawards).
  */
 (function () {
 	'use strict';
@@ -50,16 +50,22 @@
 		return html;
 	}
 
-	function readColumnFilters(mapPane) {
+	function readMapFilters(mapPane) {
 		var leftEl = mapPane.querySelector('.gwu-hpl-filter-col[value="left"]');
 		var rightEl = mapPane.querySelector('.gwu-hpl-filter-col[value="right"]');
+		var subEl = mapPane.querySelector('.gwu-hpl-filter-subaward');
 		return {
 			left: leftEl ? leftEl.checked : true,
 			right: rightEl ? rightEl.checked : true,
+			subaward: subEl ? subEl.checked : true,
 		};
 	}
 
 	function markerMatchesFilters(m, f) {
+		var t = (m.type_name || '').toLowerCase();
+		if (t === 'subaward') {
+			return f.subaward;
+		}
 		var col = m.column || '';
 		if (col === 'left') {
 			return f.left;
@@ -75,7 +81,7 @@
 
 	function applyMarkers(markerGroup, markersData, map) {
 		var mapPane = markerGroup._gwuMapPane;
-		var f = readColumnFilters(mapPane);
+		var f = readMapFilters(mapPane);
 		markerGroup.clearLayers();
 		markersData.forEach(function (m) {
 			if (!markerMatchesFilters(m, f)) {
@@ -127,7 +133,7 @@
 
 		if (!mapPane._gwuFilterWired) {
 			mapPane._gwuFilterWired = true;
-			mapPane.querySelectorAll('.gwu-hpl-filter-col').forEach(function (cb) {
+			mapPane.querySelectorAll('.gwu-hpl-filter-col, .gwu-hpl-filter-subaward').forEach(function (cb) {
 				cb.addEventListener('change', function () {
 					if (canvas._gwuLeafletMap && canvas._gwuMarkerGroup) {
 						applyMarkers(canvas._gwuMarkerGroup, canvas._gwuMarkersData, canvas._gwuLeafletMap);

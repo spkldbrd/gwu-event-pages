@@ -257,6 +257,10 @@ class GWU_Shortcode {
 							<input type="checkbox" class="gwu-hpl-filter-col" value="right" checked>
 							<?php echo esc_html( 'Grant Management' ); ?>
 						</label>
+						<label class="gwu-hpl-map-filters__opt">
+							<input type="checkbox" class="gwu-hpl-filter-subaward" checked>
+							<?php echo esc_html( 'Managing Subawards' ); ?>
+						</label>
 						<em class="gwu-hpl-map-filters__note"><?php echo esc_html( "*In-Person events only. Switch to 'list' view to see Zoom events." ); ?></em>
 					</div>
 					<div class="gwu-hpl-map-canvas" role="presentation"></div>
@@ -286,15 +290,18 @@ class GWU_Shortcode {
 			$time  = $this->get_event_time_text( $ev, $zoom_east, $zoom_west, $zoom_default );
 			$url   = isset( $ev['web_url'] ) ? esc_url_raw( (string) $ev['web_url'] ) : '';
 
+			$type_name = strtolower( trim( (string) ( $ev['type_name'] ?? '' ) ) );
+
 			$out[] = array(
-				'id'     => (int) ( $ev['id'] ?? 0 ),
-				'lat'    => $pin['lat'],
-				'lng'    => $pin['lng'],
-				'title'  => $title,
-				'date'   => $date,
-				'time'   => $time,
-				'url'    => $url,
-				'column' => (string) ( $ev['column'] ?? '' ),
+				'id'        => (int) ( $ev['id'] ?? 0 ),
+				'lat'       => $pin['lat'],
+				'lng'       => $pin['lng'],
+				'title'     => $title,
+				'date'      => $date,
+				'time'      => $time,
+				'url'       => $url,
+				'column'    => (string) ( $ev['column'] ?? '' ),
+				'type_name' => $type_name,
 			);
 		}
 		return $out;

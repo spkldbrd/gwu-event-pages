@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -32,9 +32,12 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[public_event_list]`           — Renders the cached two-column event list.
 `[public_event_list cache="0"]` — Forces a fresh fetch (useful when testing).
 
-`[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON; pins use state-level coordinates with a small spread). Zoom-only events appear on the list only.
+`[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON; pins use state-level coordinates with a small spread). Map filters: Grant Writing, Grant Management, and Managing Subawards (in-person only; Zoom-only events appear on the list only).
 
 == Changelog ==
+
+= 1.2.4 =
+* Map filter: third checkbox "Managing Subawards" (default on). In-person Subaward pins follow this control separately from Grant Writing / Grant Management.
 
 = 1.2.3 =
 * Map filter bar: disclaimer on same line as filters; horizontal scroll on very narrow viewports.
