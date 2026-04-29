@@ -198,74 +198,160 @@ class GWU_Geocode {
 	}
 
 	/**
-	 * Expand USPS state/territory code for Nominatim `q=` (e.g. MO → Missouri) so border
-	 * twin cities like Kansas City resolve to the correct side.
+	 * USPS / territory code → full state or territory name (Nominatim `q=`, location parsing).
+	 *
+	 * @return array<string, string>
+	 */
+	private static function abbrev_to_us_state_name_map(): array {
+		return array(
+			'AL' => 'Alabama',
+			'AK' => 'Alaska',
+			'AZ' => 'Arizona',
+			'AR' => 'Arkansas',
+			'CA' => 'California',
+			'CO' => 'Colorado',
+			'CT' => 'Connecticut',
+			'DE' => 'Delaware',
+			'DC' => 'District of Columbia',
+			'FL' => 'Florida',
+			'GA' => 'Georgia',
+			'HI' => 'Hawaii',
+			'ID' => 'Idaho',
+			'IL' => 'Illinois',
+			'IN' => 'Indiana',
+			'IA' => 'Iowa',
+			'KS' => 'Kansas',
+			'KY' => 'Kentucky',
+			'LA' => 'Louisiana',
+			'ME' => 'Maine',
+			'MD' => 'Maryland',
+			'MA' => 'Massachusetts',
+			'MI' => 'Michigan',
+			'MN' => 'Minnesota',
+			'MS' => 'Mississippi',
+			'MO' => 'Missouri',
+			'MT' => 'Montana',
+			'NE' => 'Nebraska',
+			'NV' => 'Nevada',
+			'NH' => 'New Hampshire',
+			'NJ' => 'New Jersey',
+			'NM' => 'New Mexico',
+			'NY' => 'New York',
+			'NC' => 'North Carolina',
+			'ND' => 'North Dakota',
+			'OH' => 'Ohio',
+			'OK' => 'Oklahoma',
+			'OR' => 'Oregon',
+			'PA' => 'Pennsylvania',
+			'RI' => 'Rhode Island',
+			'SC' => 'South Carolina',
+			'SD' => 'South Dakota',
+			'TN' => 'Tennessee',
+			'TX' => 'Texas',
+			'UT' => 'Utah',
+			'VT' => 'Vermont',
+			'VA' => 'Virginia',
+			'WA' => 'Washington',
+			'WV' => 'West Virginia',
+			'WI' => 'Wisconsin',
+			'WY' => 'Wyoming',
+			'PR' => 'Puerto Rico',
+			'GU' => 'Guam',
+			'VI' => 'U.S. Virgin Islands',
+			'AS' => 'American Samoa',
+			'MP' => 'Northern Mariana Islands',
+		);
+	}
+
+	/**
+	 * Expand abbr for Nominatim `q=` (e.g. MO → Missouri) so border twin cities resolve correctly.
 	 *
 	 * @return string Full name or the original abbr if unknown.
 	 */
 	private static function state_name_for_query( string $abbr ): string {
-		static $names = null;
-		if ( null === $names ) {
-			$names = array(
-				'AL' => 'Alabama',
-				'AK' => 'Alaska',
-				'AZ' => 'Arizona',
-				'AR' => 'Arkansas',
-				'CA' => 'California',
-				'CO' => 'Colorado',
-				'CT' => 'Connecticut',
-				'DE' => 'Delaware',
-				'DC' => 'District of Columbia',
-				'FL' => 'Florida',
-				'GA' => 'Georgia',
-				'HI' => 'Hawaii',
-				'ID' => 'Idaho',
-				'IL' => 'Illinois',
-				'IN' => 'Indiana',
-				'IA' => 'Iowa',
-				'KS' => 'Kansas',
-				'KY' => 'Kentucky',
-				'LA' => 'Louisiana',
-				'ME' => 'Maine',
-				'MD' => 'Maryland',
-				'MA' => 'Massachusetts',
-				'MI' => 'Michigan',
-				'MN' => 'Minnesota',
-				'MS' => 'Mississippi',
-				'MO' => 'Missouri',
-				'MT' => 'Montana',
-				'NE' => 'Nebraska',
-				'NV' => 'Nevada',
-				'NH' => 'New Hampshire',
-				'NJ' => 'New Jersey',
-				'NM' => 'New Mexico',
-				'NY' => 'New York',
-				'NC' => 'North Carolina',
-				'ND' => 'North Dakota',
-				'OH' => 'Ohio',
-				'OK' => 'Oklahoma',
-				'OR' => 'Oregon',
-				'PA' => 'Pennsylvania',
-				'RI' => 'Rhode Island',
-				'SC' => 'South Carolina',
-				'SD' => 'South Dakota',
-				'TN' => 'Tennessee',
-				'TX' => 'Texas',
-				'UT' => 'Utah',
-				'VT' => 'Vermont',
-				'VA' => 'Virginia',
-				'WA' => 'Washington',
-				'WV' => 'West Virginia',
-				'WI' => 'Wisconsin',
-				'WY' => 'Wyoming',
-				'PR' => 'Puerto Rico',
-				'GU' => 'Guam',
-				'VI' => 'U.S. Virgin Islands',
-				'AS' => 'American Samoa',
-				'MP' => 'Northern Mariana Islands',
+		$names = self::abbrev_to_us_state_name_map();
+		return $names[ $abbr ] ?? $abbr;
+	}
+
+	/**
+	 * Normalize API or location text to a two-letter state/territory code when possible.
+	 */
+	public static function resolve_state_token( string $token ): string {
+		$token = trim( $token );
+		if ( '' === $token ) {
+			return '';
+		}
+		$u = strtoupper( $token );
+		if ( preg_match( '/^[A-Z]{2}$/', $u ) ) {
+			return $u;
+		}
+		$key = strtolower( $token );
+		static $by_lower_name = null;
+		if ( null === $by_lower_name ) {
+			$by_lower_name = array();
+			foreach ( self::abbrev_to_us_state_name_map() as $abbr => $name ) {
+				$by_lower_name[ strtolower( $name ) ] = $abbr;
+			}
+		}
+		return $by_lower_name[ $key ] ?? '';
+	}
+
+	/**
+	 * Read geocode transient only (no HTTP, no in-request cache fill).
+	 *
+	 * @return 'hit'|'miss'|'empty'|'n/a'
+	 */
+	public static function peek_city_state_cache_status( string $city, string $state_abbr ): string {
+		$city       = trim( $city );
+		$state_abbr = strtoupper( trim( $state_abbr ) );
+		if ( '' === $city || ! preg_match( '/^[A-Z]{2}$/', $state_abbr ) ) {
+			return 'n/a';
+		}
+		$key = self::TRANSIENT_PREFIX . md5( $city . '|' . $state_abbr );
+		$v   = get_transient( $key );
+		if ( is_array( $v ) && isset( $v['lat'], $v['lng'] ) ) {
+			return 'hit';
+		}
+		if ( $v === 'fail' ) {
+			return 'miss';
+		}
+		return 'empty';
+	}
+
+	/**
+	 * Read cached coordinates only (no HTTP). Returns null if not a hit.
+	 *
+	 * @return array{lat: float, lng: float}|null
+	 */
+	public static function peek_city_state_coordinates( string $city, string $state_abbr ): ?array {
+		$city       = trim( $city );
+		$state_abbr = strtoupper( trim( $state_abbr ) );
+		if ( '' === $city || ! preg_match( '/^[A-Z]{2}$/', $state_abbr ) ) {
+			return null;
+		}
+		$key = self::TRANSIENT_PREFIX . md5( $city . '|' . $state_abbr );
+		$v   = get_transient( $key );
+		if ( is_array( $v ) && isset( $v['lat'], $v['lng'] ) ) {
+			return array(
+				'lat' => (float) $v['lat'],
+				'lng' => (float) $v['lng'],
 			);
 		}
-		return $names[ $abbr ] ?? $abbr;
+		return null;
+	}
+
+	/**
+	 * Delete the Nominatim result transient and drop the in-request cache entry for this pair.
+	 */
+	public static function delete_city_state_cache( string $city, string $state_abbr ): void {
+		$city       = trim( $city );
+		$state_abbr = strtoupper( trim( $state_abbr ) );
+		if ( '' === $city || ! preg_match( '/^[A-Z]{2}$/', $state_abbr ) ) {
+			return;
+		}
+		$key = self::TRANSIENT_PREFIX . md5( $city . '|' . $state_abbr );
+		delete_transient( $key );
+		unset( self::$request_cache[ $key ] );
 	}
 
 	private static function throttle_before_request(): void {

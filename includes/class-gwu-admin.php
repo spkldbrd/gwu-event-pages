@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provides tabs:
  *   Settings — API URL, cache TTL, default page status, test connection, shortcode reference.
  *   Pages    — Table of all auto-generated event marketing pages.
- *   Geocoding log — Recent Nominatim lookups and state-centroid fallbacks for map pins.
+ *   Geocoding log — Recent Nominatim lookups, upcoming event pin diagnostics, and bulk geocode cache tools.
  */
 class GWU_Admin {
 
@@ -74,6 +74,11 @@ class GWU_Admin {
 				GWU_Geocode_Log::clear();
 				$notice = '<div class="notice notice-success is-dismissible"><p>Geocoding log cleared.</p></div>';
 			}
+		}
+
+		if ( isset( $_POST['gwu_ep_geocode_bulk'] ) ) {
+			check_admin_referer( 'gwu_ep_geocode_bulk' );
+			$notice = $this->process_geocoding_bulk_post();
 		}
 
 		// ---- Handle settings save ----
@@ -485,6 +490,122 @@ class GWU_Admin {
 	// -------------------------------------------------------------------------
 
 	private function render_geocoding_tab(): void {
+		$payload = GWU_Shortcode::fetch_public_events_payload();
+		$events  = ( is_array( $payload ) && ! empty( $payload['events'] ) && is_array( $payload['events'] ) )
+			? $payload['events']
+			: array();
+
+		$pin_labels = array(
+			'zoom'                              => 'Zoom (no map pin)',
+			'nominatim'                         => 'City (cached Nominatim + jitter)',
+			'state_centroid_geocode_miss'       => 'State centroid (Nominatim miss / fail cache)',
+			'state_centroid_pending'            => 'State centroid (not cached yet — provisional)',
+			'state_centroid_no_city_state_query'=> 'State centroid (no city + ST for Nominatim)',
+			'no_pin'                            => 'No pin',
+		);
+
+		$cache_labels = array(
+			'hit'   => 'Cached hit',
+			'miss'  => 'Cached miss',
+			'empty' => 'Not cached',
+			'n/a'   => '—',
+		);
+
+		?>
+		<h2 class="title" style="margin-top:0;">Upcoming events and map pins</h2>
+		<p class="description" style="max-width:960px;">
+			Same <code>/public-events</code> feed as <code>[public_event_list]</code>. Coordinates are <strong>estimates</strong> for troubleshooting:
+			Nominatim is not called while rendering this table. Rows with a city + two-letter state share one geocode cache entry per pair.
+		</p>
+
+		<?php if ( empty( $events ) ) : ?>
+			<p>Could not load events (API error or empty list). Check <strong>Settings → Test API</strong> or try again later.</p>
+		<?php else : ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&tab=geocoding' ) ); ?>" id="gwu-ep-geocode-events-form">
+			<?php wp_nonce_field( 'gwu_ep_geocode_bulk' ); ?>
+			<p>
+				<button type="submit" name="gwu_ep_geocode_bulk" value="clear_cache" class="button">
+					Clear geocode cache for selected
+				</button>
+				<button type="submit" name="gwu_ep_geocode_bulk" value="refresh" class="button button-primary">
+					Clear and re-resolve (max 10 pairs)
+				</button>
+				<span class="description" style="margin-left:8px;">Re-resolve calls Nominatim with polite spacing; use sparingly.</span>
+			</p>
+			<div style="overflow-x:auto;max-width:100%;">
+			<table class="widefat striped gwu-ep-geo-events" style="min-width:1100px;">
+				<thead>
+					<tr>
+						<th style="width:36px;"><input type="checkbox" id="gwu-ep-geo-sel-all" title="Select all with geocode pair" /></th>
+						<th style="width:50px;">ID</th>
+						<th style="width:140px;">Dates</th>
+						<th>Location (raw)</th>
+						<th style="width:90px;">API city</th>
+						<th style="width:70px;">API state</th>
+						<th style="width:100px;">Resolved city</th>
+						<th style="width:40px;">ST</th>
+						<th style="width:110px;">Geocode cache</th>
+						<th style="width:200px;">Pin source</th>
+						<th style="width:80px;">Lat</th>
+						<th style="width:80px;">Lng</th>
+					</tr>
+				</thead>
+				<tbody>
+				<?php
+				foreach ( $events as $ev ) :
+					if ( ! is_array( $ev ) ) {
+						continue;
+					}
+					$d   = GWU_Map_Coords::admin_describe_pin( $ev );
+					$pair = GWU_Map_Coords::geocode_cache_pair_for_event( $ev );
+					$eid = (int) ( $ev['id'] ?? 0 );
+					$loc_show = (string) ( $d['location'] ?? '' );
+					if ( strlen( $loc_show ) > 80 ) {
+						$loc_show = substr( $loc_show, 0, 77 ) . '…';
+					}
+					$cs = isset( $cache_labels[ $d['cache_status'] ] ) ? $cache_labels[ $d['cache_status'] ] : $d['cache_status'];
+					$ps = isset( $pin_labels[ $d['pin_source'] ] ) ? $pin_labels[ $d['pin_source'] ] : $d['pin_source'];
+					?>
+					<tr>
+						<td>
+							<?php if ( null !== $pair && $eid > 0 ) : ?>
+								<input type="checkbox" class="gwu-ep-geo-sel" name="gwu_ep_sel[]" value="<?php echo esc_attr( (string) $eid ); ?>" />
+							<?php else : ?>
+								<span class="description">—</span>
+							<?php endif; ?>
+						</td>
+						<td><?php echo $eid > 0 ? esc_html( (string) $eid ) : '—'; ?></td>
+						<td><small><?php echo esc_html( $this->format_geocode_tab_event_dates( $ev ) ); ?></small></td>
+						<td style="word-break:break-word;font-size:12px;"><?php echo esc_html( $loc_show ); ?></td>
+						<td><?php echo esc_html( (string) ( $d['api_city'] ?? '' ) ); ?></td>
+						<td><?php echo esc_html( (string) ( $d['api_state'] ?? '' ) ); ?></td>
+						<td><?php echo esc_html( (string) ( $d['resolved_city'] ?? '' ) ); ?></td>
+						<td><?php echo esc_html( (string) ( $d['resolved_st'] ?? '' ) ); ?></td>
+						<td><small><?php echo esc_html( $cs ); ?></small></td>
+						<td><small><?php echo esc_html( $ps ); ?></small><?php if ( ! empty( $d['pin_note'] ) ) : ?><br><span class="description"><?php echo esc_html( (string) $d['pin_note'] ); ?></span><?php endif; ?></td>
+						<td><?php echo isset( $d['lat'] ) && $d['lat'] !== null ? esc_html( number_format( (float) $d['lat'], 5 ) ) : '—'; ?></td>
+						<td><?php echo isset( $d['lng'] ) && $d['lng'] !== null ? esc_html( number_format( (float) $d['lng'], 5 ) ) : '—'; ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			</div>
+		</form>
+		<script>
+		(function(){
+			var a = document.getElementById('gwu-ep-geo-sel-all');
+			if (!a) return;
+			a.addEventListener('change', function(){
+				document.querySelectorAll('#gwu-ep-geocode-events-form input.gwu-ep-geo-sel').forEach(function(c){ c.checked = a.checked; });
+			});
+		})();
+		</script>
+		<?php endif; ?>
+
+		<hr style="margin:28px 0;" />
+
+		<h2 class="title">Recent Nominatim activity (ring buffer)</h2>
+		<?php
 		$entries = GWU_Geocode_Log::get_entries();
 		?>
 
@@ -548,6 +669,116 @@ class GWU_Admin {
 		</table>
 		<?php endif; ?>
 		<?php
+	}
+
+	/**
+	 * Handle Geocoding tab bulk actions (clear Nominatim transients for selected city/state pairs).
+	 */
+	private function process_geocoding_bulk_post(): string {
+		$action = sanitize_key( wp_unslash( $_POST['gwu_ep_geocode_bulk'] ?? '' ) );
+		if ( ! in_array( $action, array( 'clear_cache', 'refresh' ), true ) ) {
+			return '<div class="notice notice-warning is-dismissible"><p>Unknown bulk action.</p></div>';
+		}
+
+		$sel = isset( $_POST['gwu_ep_sel'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['gwu_ep_sel'] ) ) : array();
+		$sel = array_values( array_unique( array_filter( $sel ) ) );
+
+		if ( $sel === array() ) {
+			return '<div class="notice notice-warning is-dismissible"><p>Select at least one event that has a city + state geocode pair (checkbox column).</p></div>';
+		}
+
+		$payload = GWU_Shortcode::fetch_public_events_payload();
+		if ( ! is_array( $payload ) || empty( $payload['events'] ) || ! is_array( $payload['events'] ) ) {
+			return '<div class="notice notice-error is-dismissible"><p>Could not reload /public-events to resolve selected rows. Try again or check the API URL.</p></div>';
+		}
+
+		$by_id = array();
+		foreach ( $payload['events'] as $ev ) {
+			if ( ! is_array( $ev ) ) {
+				continue;
+			}
+			$id = (int) ( $ev['id'] ?? 0 );
+			if ( $id > 0 ) {
+				$by_id[ $id ] = $ev;
+			}
+		}
+
+		$pairs_unique = array();
+		foreach ( $sel as $id ) {
+			if ( ! isset( $by_id[ $id ] ) ) {
+				continue;
+			}
+			$p = GWU_Map_Coords::geocode_cache_pair_for_event( $by_id[ $id ] );
+			if ( null === $p ) {
+				continue;
+			}
+			$key = $p['city'] . '|' . $p['state'];
+			$pairs_unique[ $key ] = $p;
+		}
+
+		if ( $pairs_unique === array() ) {
+			return '<div class="notice notice-warning is-dismissible"><p>No geocode (city + ST) pairs found for the selected events.</p></div>';
+		}
+
+		foreach ( $pairs_unique as $p ) {
+			GWU_Geocode::delete_city_state_cache( $p['city'], $p['state'] );
+		}
+
+		$n_pairs = count( $pairs_unique );
+		$n_http  = 0;
+
+		if ( 'refresh' === $action ) {
+			$i = 0;
+			foreach ( $pairs_unique as $p ) {
+				if ( $i >= 10 ) {
+					break;
+				}
+				GWU_Geocode::lookup_city_state( $p['city'], $p['state'] );
+				++$i;
+			}
+			$n_http = $i;
+		}
+
+		if ( 'refresh' === $action ) {
+			$msg = sprintf(
+				'Cleared geocode cache for %d unique city/state pair(s). Re-resolved up to %d via Nominatim.',
+				$n_pairs,
+				$n_http
+			);
+		} else {
+			$msg = sprintf(
+				'Cleared geocode cache for %d unique city/state pair(s). The next map load or warm cron will fill transients again.',
+				$n_pairs
+			);
+		}
+
+		return '<div class="notice notice-success is-dismissible"><p>' . esc_html( $msg ) . '</p></div>';
+	}
+
+	/**
+	 * Format event start/end for the Geocoding tab table (site date format).
+	 *
+	 * @param array<string, mixed> $ev Event row.
+	 */
+	private function format_geocode_tab_event_dates( array $ev ): string {
+		$start = (string) ( $ev['start'] ?? '' );
+		$end   = (string) ( $ev['end'] ?? '' );
+		if ( '' === $start ) {
+			return '—';
+		}
+		$s = date_create( $start );
+		if ( ! $s ) {
+			return $start;
+		}
+		$fmt = get_option( 'date_format', 'M j, Y' );
+		$out = $s->format( $fmt );
+		if ( '' !== $end && $end !== $start ) {
+			$e = date_create( $end );
+			if ( $e ) {
+				$out .= ' – ' . $e->format( $fmt );
+			}
+		}
+		return $out;
 	}
 
 	// -------------------------------------------------------------------------

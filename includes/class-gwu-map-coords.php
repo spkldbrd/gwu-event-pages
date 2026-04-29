@@ -154,13 +154,26 @@ class GWU_Map_Coords {
 	 */
 	public static function match_location_city_state( string $location ): ?array {
 		$location = trim( $location );
-		if ( ! preg_match( '/^([A-Za-z][A-Za-z0-9\s\/\-\.]+),\s*([A-Z]{2})\b/u', $location, $m ) ) {
+		if ( '' === $location ) {
 			return null;
 		}
-		return array(
-			'city'  => trim( $m[1] ),
-			'state' => $m[2],
-		);
+		if ( preg_match( '/^([A-Za-z][A-Za-z0-9\s\/\-\.]+),\s*([A-Z]{2})\b/u', $location, $m ) ) {
+			return array(
+				'city'  => trim( $m[1] ),
+				'state' => strtoupper( $m[2] ),
+			);
+		}
+		if ( preg_match( '/^(.+),[ \t]+([A-Za-z][A-Za-z0-9\s\.\-]+)\s*$/u', $location, $m ) ) {
+			$tail = trim( $m[2] );
+			$abbr = GWU_Geocode::resolve_state_token( $tail );
+			if ( '' !== $abbr ) {
+				return array(
+					'city'  => trim( $m[1] ),
+					'state' => $abbr,
+				);
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -192,13 +205,18 @@ class GWU_Map_Coords {
 	 * @param array<string, mixed> $ev Event row.
 	 */
 	public static function state_abbr( array $ev ): string {
-		$s = strtoupper( trim( (string) ( $ev['state'] ?? '' ) ) );
-		if ( preg_match( '/^[A-Z]{2}$/', $s ) ) {
-			return $s;
+		$raw = trim( (string) ( $ev['state'] ?? '' ) );
+		$api = GWU_Geocode::resolve_state_token( $raw );
+		if ( '' !== $api ) {
+			return $api;
 		}
 		$loc = (string) ( $ev['location'] ?? '' );
 		if ( preg_match( '/,\s*([A-Z]{2})\b/', $loc, $m ) ) {
 			return $m[1];
+		}
+		$parsed = self::match_location_city_state( $loc );
+		if ( null !== $parsed ) {
+			return strtoupper( (string) $parsed['state'] );
 		}
 		return '';
 	}
@@ -223,5 +241,128 @@ class GWU_Map_Coords {
 		$t = ( ( $id * 137 ) % 6283 ) / 1000.0 * M_PI;
 		$r = 0.22;
 		return array( $r * sin( $t ), $r * cos( $t ) );
+	}
+
+	/**
+	 * City + ST pair used for the Nominatim transient, or null when the map does not run city geocode.
+	 *
+	 * @param array<string, mixed> $ev Event row from public-events API.
+	 * @return array{city: string, state: string}|null
+	 */
+	public static function geocode_cache_pair_for_event( array $ev ): ?array {
+		if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
+			return null;
+		}
+		$abbr = self::state_abbr( $ev );
+		$city = self::city_for_geocode( $ev );
+		if ( '' === $city || ! preg_match( '/^[A-Z]{2}$/', $abbr ) ) {
+			return null;
+		}
+		return array(
+			'city'  => $city,
+			'state' => $abbr,
+		);
+	}
+
+	/**
+	 * Pin diagnostics for admin screens without calling Nominatim.
+	 *
+	 * @param array<string, mixed> $ev Event row from public-events API.
+	 * @return array{
+	 *   zoom: bool,
+	 *   event_id: int,
+	 *   api_city: string,
+	 *   api_state: string,
+	 *   location: string,
+	 *   resolved_city: string,
+	 *   resolved_st: string,
+	 *   cache_status: string,
+	 *   pin_source: string,
+	 *   lat: float|null,
+	 *   lng: float|null,
+	 *   pin_note: string
+	 * }
+	 */
+	public static function admin_describe_pin( array $ev ): array {
+		$zoom      = ( $ev['zoom'] ?? '' ) === 'yes';
+		$api_city  = trim( (string) ( $ev['city'] ?? '' ) );
+		$api_state = trim( (string) ( $ev['state'] ?? '' ) );
+		$location  = (string) ( $ev['location'] ?? '' );
+		$event_id  = (int) ( $ev['id'] ?? 0 );
+		$abbr      = self::state_abbr( $ev );
+		$city      = self::city_for_geocode( $ev );
+		$pair      = self::geocode_cache_pair_for_event( $ev );
+
+		$base = array(
+			'zoom'          => $zoom,
+			'event_id'      => $event_id,
+			'api_city'      => $api_city,
+			'api_state'     => $api_state,
+			'location'      => $location,
+			'resolved_city' => $city,
+			'resolved_st'   => $abbr,
+		);
+
+		if ( $zoom ) {
+			return array_merge(
+				$base,
+				array(
+					'cache_status' => 'n/a',
+					'pin_source'   => 'zoom',
+					'lat'          => null,
+					'lng'          => null,
+					'pin_note'     => '',
+				)
+			);
+		}
+
+		$cache_status = null !== $pair
+			? GWU_Geocode::peek_city_state_cache_status( $pair['city'], $pair['state'] )
+			: 'n/a';
+
+		$lat       = null;
+		$lng       = null;
+		$pin_note  = '';
+		$pin_source = 'no_pin';
+
+		if ( null !== $pair ) {
+			$geo_coords = GWU_Geocode::peek_city_state_coordinates( $pair['city'], $pair['state'] );
+			if ( is_array( $geo_coords ) ) {
+				$j          = self::jitter_city( $event_id );
+				$lat        = $geo_coords['lat'] + $j[0];
+				$lng        = $geo_coords['lng'] + $j[1];
+				$pin_source = 'nominatim';
+			} else {
+				$pin_source = ( 'miss' === $cache_status ) ? 'state_centroid_geocode_miss' : 'state_centroid_pending';
+				if ( '' !== $abbr && isset( self::$centers[ $abbr ] ) ) {
+					$c   = self::$centers[ $abbr ];
+					$j   = self::jitter_state( $event_id );
+					$lat = (float) $c[0] + $j[0];
+					$lng = (float) $c[1] + $j[1];
+				} else {
+					$pin_source = 'no_pin';
+				}
+				if ( 'empty' === $cache_status ) {
+					$pin_note = 'Coordinates shown are the state-centroid fallback until Nominatim caches a city hit.';
+				}
+			}
+		} elseif ( '' !== $abbr && isset( self::$centers[ $abbr ] ) ) {
+			$c          = self::$centers[ $abbr ];
+			$j          = self::jitter_state( $event_id );
+			$lat        = (float) $c[0] + $j[0];
+			$lng        = (float) $c[1] + $j[1];
+			$pin_source = 'state_centroid_no_city_state_query';
+		}
+
+		return array_merge(
+			$base,
+			array(
+				'cache_status' => $cache_status,
+				'pin_source'   => $pin_source,
+				'lat'          => $lat,
+				'lng'          => $lng,
+				'pin_note'     => $pin_note,
+			)
+		);
 	}
 }
