@@ -157,11 +157,51 @@
 	white-space: nowrap;
 }
 
+.gwu-hpl-map-canvas-wrap {
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+
 .gwu-hpl-map-canvas {
 	flex: 1 1 auto;
 	min-height: 220px;
 	width: 100%;
 	position: relative;
+}
+
+.gwu-hpl-map-help-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	pointer-events: none;
+	transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.gwu-hpl-map-help-overlay.is-dismissed {
+	opacity: 0;
+	visibility: hidden;
+}
+
+.gwu-hpl-map-help-overlay__box {
+	max-width: 22em;
+	padding: 0.65rem 1.1rem;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.94);
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+	font-size: 0.95rem;
+	font-weight: 500;
+	text-align: center;
+	color: #1d2327;
+	line-height: 1.45;
 }
 
 .gwu-hpl-pane--map .leaflet-container {

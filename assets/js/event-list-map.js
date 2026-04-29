@@ -79,6 +79,33 @@
 		return true;
 	}
 
+	function setupMapHelpOverlay(root, map, mapPane) {
+		var overlay = mapPane.querySelector('.gwu-hpl-map-help-overlay');
+		if (!overlay) {
+			return;
+		}
+		if (root._gwuMapHelpDismissed) {
+			overlay.classList.add('is-dismissed');
+			return;
+		}
+		var helpTimer;
+		function dismissHelpOverlay() {
+			if (root._gwuMapHelpDismissed) {
+				return;
+			}
+			root._gwuMapHelpDismissed = true;
+			if (helpTimer) {
+				clearTimeout(helpTimer);
+			}
+			map.off('dragstart', dismissHelpOverlay);
+			map.off('dblclick', dismissHelpOverlay);
+			overlay.classList.add('is-dismissed');
+		}
+		map.on('dragstart', dismissHelpOverlay);
+		map.on('dblclick', dismissHelpOverlay);
+		helpTimer = setTimeout(dismissHelpOverlay, 6500);
+	}
+
 	function applyMarkers(markerGroup, markersData, map) {
 		var mapPane = markerGroup._gwuMapPane;
 		var f = readMapFilters(mapPane);
@@ -130,6 +157,8 @@
 
 		canvas._gwuLeafletMap = map;
 		canvas._gwuMarkerGroup = markerGroup;
+
+		setupMapHelpOverlay(root, map, mapPane);
 
 		if (!mapPane._gwuFilterWired) {
 			mapPane._gwuFilterWired = true;

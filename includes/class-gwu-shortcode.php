@@ -263,7 +263,14 @@ class GWU_Shortcode {
 						</label>
 						<em class="gwu-hpl-map-filters__note"><?php echo esc_html( "*In-Person events only. Switch to 'list' view to see Zoom events." ); ?></em>
 					</div>
-					<div class="gwu-hpl-map-canvas" role="presentation"></div>
+					<div class="gwu-hpl-map-canvas-wrap">
+						<div class="gwu-hpl-map-canvas" role="presentation"></div>
+						<div class="gwu-hpl-map-help-overlay" role="status" aria-live="polite">
+							<div class="gwu-hpl-map-help-overlay__box">
+								<?php echo esc_html( 'Double-Click to zoom in, drag to move.' ); ?>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
