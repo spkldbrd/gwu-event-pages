@@ -12,6 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * matching the upcoming events layout.  Past events are cached for 24 hours
  * since historical data does not change.
  *
+ * Workshop location links are shown only for the current and previous calendar
+ * year (site timezone); older years are plain text.
+ *
  * Usage:
  *   [past_event_list]                — last 2 years
  *   [past_event_list years="3"]      — last 3 years (max 10)
@@ -159,13 +162,17 @@ class GWU_Past_Shortcode {
 		$web_url = $ev['web_url'] ?? '';
 		$type    = strtolower( $ev['type_name'] ?? '' );
 
+		$event_year = (int) substr( (string) ( $ev['start'] ?? '' ), 0, 4 );
+		$this_year  = (int) current_time( 'Y' );
+		$link_years = ( $event_year > 0 && ( $event_year === $this_year || $event_year === $this_year - 1 ) );
+
 		// Subaward events get a descriptive prefix instead of a badge.
 		if ( $type === 'subaward' ) {
 			$location = 'Managing Subawards ' . $location;
 		}
 
 		$out = '<span class="hpl-past-location">';
-		if ( $web_url && $web_url !== '#' ) {
+		if ( $link_years && $web_url && $web_url !== '#' ) {
 			$out .= '<a href="' . esc_url( $web_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $location ) . '</a>';
 		} else {
 			$out .= esc_html( $location );
