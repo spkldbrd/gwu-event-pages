@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.17
+Stable tag: 1.2.18
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -35,6 +35,9 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (from API fields or parsed from the location line as "City, ST" or "City, Full State Name"; OpenStreetMap Nominatim, cached in WordPress transients), with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
 
 == Changelog ==
+
+= 1.2.18 =
+* Event list: "Event Details" is the full link text; for Zoom webinars the Zoom badge is inside the same link.
 
 = 1.2.17 =
 * Event list: remove `prefers-color-scheme: dark` overrides so list copy stays readable on light themes when the visitor OS is in dark mode.

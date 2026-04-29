@@ -82,6 +82,11 @@
 	text-decoration: underline;
 }
 
+/* Zoom badge nested inside anchor (Zoom webinar row) */
+a.hpl-details-link .hpl-zoom-badge {
+	text-decoration: none;
+}
+
 /* Pending link (no URL set yet) */
 .hpl-details-pending {
 	color: #999;

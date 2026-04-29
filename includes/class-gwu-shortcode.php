@@ -389,14 +389,20 @@ class GWU_Shortcode {
 		$out .= '</div>';
 
 		$out .= '<div class="hpl-event-details-row">';
-		$out .= 'Click for event ';
 		if ( $web_url ) {
-			$out .= '<a href="' . $web_url . '" class="hpl-details-link" target="_blank" rel="noopener noreferrer">details</a>';
+			$out .= '<a href="' . $web_url . '" class="hpl-details-link" target="_blank" rel="noopener noreferrer">';
+			$out .= esc_html( 'Event Details' );
+			if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
+				$out .= ' <span class="hpl-zoom-badge">Zoom</span>';
+			}
+			$out .= '</a>';
 		} else {
-			$out .= '<span class="hpl-details-link hpl-details-pending">details</span>';
-		}
-		if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
-			$out .= ' <span class="hpl-zoom-badge">Zoom</span>';
+			$out .= '<span class="hpl-details-link hpl-details-pending">';
+			$out .= esc_html( 'Event Details' );
+			if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
+				$out .= ' <span class="hpl-zoom-badge">Zoom</span>';
+			}
+			$out .= '</span>';
 		}
 		$out .= '</div>';
 
