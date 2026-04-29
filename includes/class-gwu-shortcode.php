@@ -72,7 +72,12 @@ class GWU_Shortcode {
 	// HTTP fetch
 	// -------------------------------------------------------------------------
 
-	private function fetch_events(): ?array {
+	/**
+	 * Fetches public-events JSON from Hostlinks (same contract as the shortcode).
+	 *
+	 * @return array{events: array, meta?: array}|null
+	 */
+	public static function fetch_public_events_payload(): ?array {
 		$url      = rtrim( GWU_Admin::get_hmo_api(), '/' ) . '/public-events';
 		$response = wp_remote_get( $url, array( 'timeout' => 10 ) );
 
@@ -94,6 +99,10 @@ class GWU_Shortcode {
 		}
 
 		return $data;
+	}
+
+	private function fetch_events(): ?array {
+		return self::fetch_public_events_payload();
 	}
 
 	// -------------------------------------------------------------------------

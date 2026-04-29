@@ -108,6 +108,37 @@ class GWU_Map_Coords {
 	}
 
 	/**
+	 * Pre-warm Nominatim transients for every unique city/state the map would geocode.
+	 *
+	 * @param array<int, mixed> $events Raw events from public-events API.
+	 * @return int Number of unique (city, state) pairs processed.
+	 */
+	public static function warm_geocode_cache_for_events( array $events ): int {
+		$pairs = array();
+		foreach ( $events as $ev ) {
+			if ( ! is_array( $ev ) ) {
+				continue;
+			}
+			if ( ( $ev['zoom'] ?? '' ) === 'yes' ) {
+				continue;
+			}
+			$abbr = self::state_abbr( $ev );
+			$city = self::city_for_geocode( $ev );
+			if ( '' === $city || ! preg_match( '/^[A-Z]{2}$/', $abbr ) ) {
+				continue;
+			}
+			$key = $city . '|' . $abbr;
+			if ( ! isset( $pairs[ $key ] ) ) {
+				$pairs[ $key ] = array( 'city' => $city, 'state' => $abbr );
+			}
+		}
+		foreach ( $pairs as $row ) {
+			GWU_Geocode::lookup_city_state( $row['city'], $row['state'] );
+		}
+		return count( $pairs );
+	}
+
+	/**
 	 * Parse a leading "City, ST" segment from a location string (same rule as list titles).
 	 *
 	 * @return array{city: string, state: string}|null

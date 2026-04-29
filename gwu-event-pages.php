@@ -3,7 +3,7 @@
  * Plugin Name: GWU Event Pages
  * Plugin URI:  https://github.com/spkldbrd/gwu-event-pages
  * Description: Renders the public event list shortcode (fed from Hostlinks via REST) and provides the Event Marketing Page template used by auto-generated event pages.
- * Version:     1.2.10
+ * Version:     1.2.11
  * Author:      Digital Solution
  * Author URI:  https://digitalsolution.com
  * License:     GPL2
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GWU_EP_VERSION',    '1.2.10' );
+define( 'GWU_EP_VERSION',    '1.2.11' );
 define( 'GWU_EP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_FILE', __FILE__ );
@@ -29,7 +29,11 @@ require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-map-coords.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-shortcode.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-past-shortcode.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-admin.php';
+require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-geocode-cron.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-updater.php';
+
+register_activation_hook( GWU_EP_PLUGIN_FILE, array( 'GWU_Geocode_Cron', 'activate' ) );
+register_deactivation_hook( GWU_EP_PLUGIN_FILE, array( 'GWU_Geocode_Cron', 'deactivate' ) );
 
 GWU_Updater::init( __FILE__, 'spkldbrd', 'gwu-event-pages' );
 
@@ -62,4 +66,7 @@ add_action( 'plugins_loaded', function() {
 		$admin = new GWU_Admin();
 		$admin->register();
 	}
+
+	GWU_Geocode_Cron::init();
+	GWU_Geocode_Cron::schedule_if_missing();
 } );
