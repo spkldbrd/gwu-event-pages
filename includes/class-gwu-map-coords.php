@@ -1,8 +1,7 @@
 <?php
 /**
- * Approximate geographic center per state (and DC, PR) for map pins when
- * city-level geocoding is not used. Source: public domain-style reference
- * coordinates commonly used for state-level maps.
+ * Map pin coordinates: prefers city + state via OSM Nominatim (cached), with
+ * state-centroid + jitter fallback when geocoding is unavailable.
  *
  * @package GWU_Event_Pages
  */
@@ -79,13 +78,26 @@ class GWU_Map_Coords {
 		}
 
 		$abbr = self::state_abbr( $ev );
+		$city = trim( (string) ( $ev['city'] ?? '' ) );
+		$id   = (int) ( $ev['id'] ?? 0 );
+
+		if ( '' !== $city && preg_match( '/^[A-Z]{2}$/', $abbr ) ) {
+			$geo = GWU_Geocode::lookup_city_state( $city, $abbr );
+			if ( is_array( $geo ) ) {
+				$j = self::jitter_city( $id );
+				return array(
+					'lat' => $geo['lat'] + $j[0],
+					'lng' => $geo['lng'] + $j[1],
+				);
+			}
+		}
+
 		if ( '' === $abbr || ! isset( self::$centers[ $abbr ] ) ) {
 			return null;
 		}
 
 		$c    = self::$centers[ $abbr ];
-		$id   = (int) ( $ev['id'] ?? 0 );
-		$j    = self::jitter( $id );
+		$j    = self::jitter_state( $id );
 		$latf = (float) $c[0] + $j[0];
 		$lngf = (float) $c[1] + $j[1];
 
@@ -111,12 +123,22 @@ class GWU_Map_Coords {
 	}
 
 	/**
-	 * Small deterministic offset so multiple events in the same state do not
-	 * stack on one pixel.
+	 * Offset for city-level pins (~1.5 km) so same-city workshops separate slightly.
 	 *
 	 * @return array{0: float, 1: float} lat, lng deltas in degrees.
 	 */
-	private static function jitter( int $id ): array {
+	private static function jitter_city( int $id ): array {
+		$t = ( ( $id * 137 ) % 6283 ) / 1000.0 * M_PI;
+		$r = 0.014;
+		return array( $r * sin( $t ), $r * cos( $t ) );
+	}
+
+	/**
+	 * Larger offset for state-centroid fallback pins.
+	 *
+	 * @return array{0: float, 1: float} lat, lng deltas in degrees.
+	 */
+	private static function jitter_state( int $id ): array {
 		$t = ( ( $id * 137 ) % 6283 ) / 1000.0 * M_PI;
 		$r = 0.22;
 		return array( $r * sin( $t ), $r * cos( $t ) );
