@@ -90,6 +90,15 @@ class GWU_Map_Coords {
 					'lng' => $geo['lng'] + $j[1],
 				);
 			}
+			GWU_Geocode_Log::append_once_per_request(
+				'fb|' . md5( $city . '|' . $abbr ),
+				array(
+					'kind'    => 'pin_state_fallback',
+					'city'    => $city,
+					'state'   => $abbr,
+					'message' => 'Geocode miss or unavailable; map pin uses state centroid + spread (not city center).',
+				)
+			);
 		}
 
 		if ( '' === $abbr || ! isset( self::$centers[ $abbr ] ) ) {
@@ -195,14 +204,13 @@ class GWU_Map_Coords {
 	}
 
 	/**
-	 * Offset for city-level pins (~5–6 km radius) so multiple same-city workshops
-	 * stay visually distinct without zooming far in.
+	 * Offset for city-level pins (~2 km max from geocoded center) so same-city workshops separate slightly.
 	 *
 	 * @return array{0: float, 1: float} lat, lng deltas in degrees.
 	 */
 	private static function jitter_city( int $id ): array {
 		$t = ( ( $id * 137 ) % 6283 ) / 1000.0 * M_PI;
-		$r = 0.048;
+		$r = 0.018;
 		return array( $r * sin( $t ), $r * cos( $t ) );
 	}
 

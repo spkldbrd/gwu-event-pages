@@ -7,9 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the "Event Pages" admin menu on the primary domain (grantwritingusa.com).
  *
- * Provides two tabs:
+ * Provides tabs:
  *   Settings — API URL, cache TTL, default page status, test connection, shortcode reference.
  *   Pages    — Table of all auto-generated event marketing pages.
+ *   Geocoding log — Recent Nominatim lookups and state-centroid fallbacks for map pins.
  */
 class GWU_Admin {
 
@@ -68,6 +69,13 @@ class GWU_Admin {
 		$notice     = '';
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'settings';
 
+		if ( isset( $_POST['gwu_ep_clear_geocode_log'] ) && isset( $_POST['_wpnonce'] ) ) {
+			if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'gwu_ep_clear_geocode_log' ) ) {
+				GWU_Geocode_Log::clear();
+				$notice = '<div class="notice notice-success is-dismissible"><p>Geocoding log cleared.</p></div>';
+			}
+		}
+
 		// ---- Handle settings save ----
 		if ( isset( $_POST['gwu_ep_save_settings'] ) ) {
 			check_admin_referer( 'gwu_ep_settings' );
@@ -113,8 +121,9 @@ class GWU_Admin {
 		}
 
 		$tabs = array(
-			'settings' => 'Settings',
-			'pages'    => 'Event Pages',
+			'settings'  => 'Settings',
+			'pages'     => 'Event Pages',
+			'geocoding' => 'Geocoding log',
 		);
 
 		?>
@@ -135,6 +144,8 @@ class GWU_Admin {
 				<?php $this->render_settings_tab(); ?>
 			<?php elseif ( $active_tab === 'pages' ) : ?>
 				<?php $this->render_pages_tab(); ?>
+			<?php elseif ( $active_tab === 'geocoding' ) : ?>
+				<?php $this->render_geocoding_tab(); ?>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -466,6 +477,76 @@ class GWU_Admin {
 		.gwu-ep-pages-table { max-width: 1200px; }
 		.gwu-ep-pages-table td { vertical-align: middle; }
 		</style>
+		<?php
+	}
+
+	// -------------------------------------------------------------------------
+	// Geocoding log tab
+	// -------------------------------------------------------------------------
+
+	private function render_geocoding_tab(): void {
+		$entries = GWU_Geocode_Log::get_entries();
+		?>
+
+		<p class="description" style="max-width:900px;">
+			Recent map geocode activity (OpenStreetMap Nominatim) and <strong>state-centroid fallbacks</strong> when city lookup fails.
+			The log keeps the last <?php echo (int) GWU_Geocode_Log::MAX_ENTRIES; ?> entries. Use it to spot wrong cities or cached misses (e.g. pins landing mid-state).
+		</p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&tab=geocoding' ) ); ?>" style="margin:16px 0;">
+			<?php wp_nonce_field( 'gwu_ep_clear_geocode_log' ); ?>
+			<button type="submit" name="gwu_ep_clear_geocode_log" value="1" class="button">
+				Clear geocoding log
+			</button>
+		</form>
+
+		<?php if ( empty( $entries ) ) : ?>
+			<p>No geocoding events logged yet. Load a page with <code>[public_event_list enable_map="1"]</code> or wait for the nightly warm cron.</p>
+		<?php else : ?>
+		<table class="widefat striped" style="max-width:100%;table-layout:fixed;">
+			<thead>
+				<tr>
+					<th style="width:160px;">Time (UTC)</th>
+					<th style="width:130px;">Kind</th>
+					<th style="width:100px;">City</th>
+					<th style="width:50px;">ST</th>
+					<th style="width:80px;">Lat</th>
+					<th style="width:80px;">Lng</th>
+					<th style="width:50px;">HTTP</th>
+					<th>Query / label / message</th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ( $entries as $row ) :
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+				$t     = isset( $row['t'] ) ? (string) $row['t'] : '';
+				$kind  = isset( $row['kind'] ) ? (string) $row['kind'] : '';
+				$city  = isset( $row['city'] ) ? (string) $row['city'] : '';
+				$state = isset( $row['state'] ) ? (string) $row['state'] : '';
+				$lat   = isset( $row['lat'] ) ? $row['lat'] : '';
+				$lng   = isset( $row['lng'] ) ? $row['lng'] : '';
+				$http  = isset( $row['http'] ) ? (string) $row['http'] : '';
+				$query = isset( $row['query'] ) ? (string) $row['query'] : '';
+				$label = isset( $row['label'] ) ? (string) $row['label'] : '';
+				$msg   = isset( $row['message'] ) ? (string) $row['message'] : '';
+				$tail  = $query !== '' ? $query : ( $label !== '' ? $label : $msg );
+				?>
+				<tr>
+					<td><code style="font-size:11px;"><?php echo esc_html( $t ); ?></code></td>
+					<td><?php echo esc_html( $kind ); ?></td>
+					<td><?php echo esc_html( $city ); ?></td>
+					<td><?php echo esc_html( $state ); ?></td>
+					<td><?php echo $lat !== '' ? esc_html( (string) $lat ) : '—'; ?></td>
+					<td><?php echo $lng !== '' ? esc_html( (string) $lng ) : '—'; ?></td>
+					<td><?php echo $http !== '' ? esc_html( $http ) : '—'; ?></td>
+					<td style="word-break:break-word;font-size:12px;"><?php echo esc_html( $tail ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php endif; ?>
 		<?php
 	}
 

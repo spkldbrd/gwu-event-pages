@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class GWU_Geocode {
 
-	private const TRANSIENT_PREFIX = 'gwu_ep_geo_v1_';
+	private const TRANSIENT_PREFIX = 'gwu_ep_geo_v3_';
 
 	private const TTL_HIT = 90 * DAY_IN_SECONDS;
 
@@ -53,17 +53,26 @@ class GWU_Geocode {
 		}
 		if ( $cached === 'fail' ) {
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append_once_per_request(
+				'tf|' . md5( $city . '|' . $state_abbr ),
+				array(
+					'kind'    => 'transient_miss_cached',
+					'city'    => $city,
+					'state'   => $state_abbr,
+					'message' => 'Using cached geocode miss (Nominatim not called until TTL expires).',
+				)
+			);
 			return null;
 		}
 
 		self::throttle_before_request();
 
-		$url = add_query_arg(
+		$query_text = $city . ', ' . $state_abbr . ', United States';
+		$url        = add_query_arg(
 			array(
 				'format'         => 'json',
 				'limit'          => '1',
-				'city'           => $city,
-				'state'          => $state_abbr,
+				'q'              => $query_text,
 				'countrycodes'   => 'us',
 				'addressdetails' => '0',
 			),
@@ -86,6 +95,15 @@ class GWU_Geocode {
 		if ( is_wp_error( $response ) ) {
 			set_transient( $key, 'fail', self::TTL_MISS );
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append(
+				array(
+					'kind'    => 'nominatim_wp_error',
+					'city'    => $city,
+					'state'   => $state_abbr,
+					'query'   => $query_text,
+					'message' => $response->get_error_message(),
+				)
+			);
 			return null;
 		}
 
@@ -94,6 +112,16 @@ class GWU_Geocode {
 		if ( $code < 200 || $code >= 300 ) {
 			set_transient( $key, 'fail', self::TTL_MISS );
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append(
+				array(
+					'kind'    => 'nominatim_http_error',
+					'city'    => $city,
+					'state'   => $state_abbr,
+					'query'   => $query_text,
+					'http'    => $code,
+					'message' => substr( $body, 0, 200 ),
+				)
+			);
 			return null;
 		}
 
@@ -101,6 +129,16 @@ class GWU_Geocode {
 		if ( ! is_array( $rows ) || $rows === array() ) {
 			set_transient( $key, 'fail', self::TTL_MISS );
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append(
+				array(
+					'kind'    => 'nominatim_empty',
+					'city'    => $city,
+					'state'   => $state_abbr,
+					'query'   => $query_text,
+					'http'    => $code,
+					'message' => 'No results',
+				)
+			);
 			return null;
 		}
 
@@ -108,6 +146,15 @@ class GWU_Geocode {
 		if ( ! is_array( $first ) ) {
 			set_transient( $key, 'fail', self::TTL_MISS );
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append(
+				array(
+					'kind'  => 'nominatim_bad_row',
+					'city'  => $city,
+					'state' => $state_abbr,
+					'query' => $query_text,
+					'http'  => $code,
+				)
+			);
 			return null;
 		}
 
@@ -116,12 +163,37 @@ class GWU_Geocode {
 		if ( null === $lat || null === $lng || ( $lat === 0.0 && $lng === 0.0 ) ) {
 			set_transient( $key, 'fail', self::TTL_MISS );
 			self::$request_cache[ $key ] = null;
+			GWU_Geocode_Log::append(
+				array(
+					'kind'  => 'nominatim_no_coords',
+					'city'  => $city,
+					'state' => $state_abbr,
+					'query' => $query_text,
+					'http'  => $code,
+				)
+			);
 			return null;
 		}
+
+		$label = isset( $first['display_name'] ) ? (string) $first['display_name'] : '';
 
 		$out = array( 'lat' => $lat, 'lng' => $lng );
 		set_transient( $key, $out, self::TTL_HIT );
 		self::$request_cache[ $key ] = $out;
+
+		GWU_Geocode_Log::append(
+			array(
+				'kind'  => 'nominatim_ok',
+				'city'  => $city,
+				'state' => $state_abbr,
+				'lat'   => $lat,
+				'lng'   => $lng,
+				'http'  => $code,
+				'query' => $query_text,
+				'label' => substr( $label, 0, 200 ),
+			)
+		);
+
 		return $out;
 	}
 
