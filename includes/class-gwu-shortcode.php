@@ -276,7 +276,7 @@ class GWU_Shortcode {
 						<div class="gwu-hpl-map-canvas" role="presentation"></div>
 						<div class="gwu-hpl-map-help-overlay" role="status" aria-live="polite">
 							<div class="gwu-hpl-map-help-overlay__box">
-								<?php echo esc_html( 'Double-click to zoom, or Ctrl+scroll (⌘+scroll on Mac). While the pointer is on the map, the mouse wheel zooms in or out. Drag to move.' ); ?>
+								<?php echo esc_html( 'Scroll or Double Click to zoom. Drag to move.' ); ?>
 							</div>
 						</div>
 					</div>

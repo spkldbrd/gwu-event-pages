@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.12
+Stable tag: 1.2.13
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -35,6 +35,10 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (from API fields or parsed from the location line as "City, ST"; OpenStreetMap Nominatim, cached in WordPress transients), with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
 
 == Changelog ==
+
+= 1.2.13 =
+* Map help overlay: copy set to "Scroll or Double Click to zoom. Drag to move."
+* Geocoding: Nominatim `q=` now uses full state name (e.g. "Kansas City, Missouri, United States") to disambiguate border cities; transient prefix `v4_` refreshes cache after earlier misses.
 
 = 1.2.12 =
 * Map geocoding: Nominatim uses free-text `q` (e.g. "Kansas City, MO, United States") for clearer results; geocode transient key bumped to `v3_` so old caches are ignored.
