@@ -108,22 +108,6 @@
 	font-style: italic;
 }
 
-/* ── Dark mode support ────────────────────────────────────────────── */
-@media ( prefers-color-scheme: dark ) {
-	.hpl-col-desc {
-		color: #aaa;
-	}
-	.hpl-details-link {
-		color: #4eb8f0;
-	}
-	.hpl-event-details-row {
-		color: #ccc;
-	}
-	.hpl-zoom-time {
-		color: #ccc;
-	}
-}
-
 /* ── Past Event List ──────────────────────────────────────────────── */
 .hpl-past-wrapper {
 	font-family: inherit;
@@ -212,28 +196,6 @@
 	font-size: 0.88em;
 	font-style: italic;
 	margin: 0;
-}
-
-@media ( prefers-color-scheme: dark ) {
-	.hpl-past-year__heading {
-		border-bottom-color: #444;
-	}
-	.hpl-past-col__heading {
-		color: #aaa;
-	}
-	.hpl-past-list li {
-		border-bottom-color: #333;
-	}
-	.hpl-past-location a {
-		color: #4eb8f0;
-	}
-	.hpl-past-date {
-		color: #999;
-	}
-	.hpl-past-type-badge {
-		background: #333;
-		color: #ccc;
-	}
 }
 
 /* ── Event Marketing Page layout ─────────────────────────────────── */
