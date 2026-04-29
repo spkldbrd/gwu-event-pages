@@ -79,6 +79,23 @@
 		return true;
 	}
 
+	function setupScrollWheelZoomOnHover(map) {
+		if (map.scrollWheelZoom) {
+			map.scrollWheelZoom.disable();
+		}
+		var el = map.getContainer();
+		el.addEventListener('mouseenter', function () {
+			if (map.scrollWheelZoom) {
+				map.scrollWheelZoom.enable();
+			}
+		});
+		el.addEventListener('mouseleave', function () {
+			if (map.scrollWheelZoom) {
+				map.scrollWheelZoom.disable();
+			}
+		});
+	}
+
 	function setupMapHelpOverlay(root, map, mapPane) {
 		var overlay = mapPane.querySelector('.gwu-hpl-map-help-overlay');
 		if (!overlay) {
@@ -89,6 +106,10 @@
 			return;
 		}
 		var helpTimer;
+		var container = map.getContainer();
+		function onWheelDismiss() {
+			dismissHelpOverlay();
+		}
 		function dismissHelpOverlay() {
 			if (root._gwuMapHelpDismissed) {
 				return;
@@ -99,10 +120,12 @@
 			}
 			map.off('dragstart', dismissHelpOverlay);
 			map.off('dblclick', dismissHelpOverlay);
+			container.removeEventListener('wheel', onWheelDismiss);
 			overlay.classList.add('is-dismissed');
 		}
 		map.on('dragstart', dismissHelpOverlay);
 		map.on('dblclick', dismissHelpOverlay);
+		container.addEventListener('wheel', onWheelDismiss, { passive: true });
 		helpTimer = setTimeout(dismissHelpOverlay, 6500);
 	}
 
@@ -146,7 +169,7 @@
 		var cfg = window.gwuEpMapDefaults || {};
 		var geoUrl = cfg.geoJsonUrl || '';
 
-		var map = L.map(canvas, { scrollWheelZoom: false });
+		var map = L.map(canvas, { scrollWheelZoom: true });
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			maxZoom: 18,
 			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -158,6 +181,7 @@
 		canvas._gwuLeafletMap = map;
 		canvas._gwuMarkerGroup = markerGroup;
 
+		setupScrollWheelZoomOnHover(map);
 		setupMapHelpOverlay(root, map, mapPane);
 
 		if (!mapPane._gwuFilterWired) {
