@@ -121,6 +121,8 @@ class GWU_Admin {
 
 			// Bust the transient cache so next page load fetches fresh data.
 			delete_transient( 'gwu_ep_public_events' );
+			delete_transient( 'gwu_ep_public_events_stale' );
+			GWU_Past_Shortcode::delete_all_transients();
 
 			$notice = '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
 		}
@@ -214,6 +216,12 @@ class GWU_Admin {
 						<p class="description">
 							How long the <code>[public_event_list]</code> shortcode caches the API response.
 							Use <code>[public_event_list cache="0"]</code> on any page to force-refresh on that load.
+						</p>
+						<p class="description">
+							<strong>Clear Event Cache</strong> removes the cached <code>/public-events</code> response (upcoming list),
+							its stale backup, and every <code>[past_event_list]</code> cache (<code>/past-events</code> for
+							<code>years=1</code> through <code><?php echo (int) GWU_Past_Shortcode::MAX_YEARS; ?></code>) so visibility
+							changes on Hostlinks show up immediately.
 						</p>
 						<p>
 							<button type="button" id="gwu-ep-clear-cache" class="button"
@@ -862,16 +870,12 @@ class GWU_Admin {
 		// Also clear the stale-backup transient used during API outages.
 		delete_transient( 'gwu_ep_public_events_stale' );
 
-		// Past events transients (keyed by years 1–10).
-		for ( $y = 1; $y <= 10; $y++ ) {
-			if ( delete_transient( 'gwu_ep_past_events_' . $y ) ) {
-				$deleted++;
-			}
-		}
+		// Past events: all year-depth transients (see GWU_Past_Shortcode::MAX_YEARS).
+		$deleted += GWU_Past_Shortcode::delete_all_transients();
 
 		wp_send_json_success( array(
 			'message' => $deleted > 0
-				? 'Cache cleared (' . $deleted . ' transient(s) deleted). Next page load will fetch fresh data.'
+				? 'Cache cleared (' . $deleted . ' transient(s) deleted): upcoming list, stale backup, and past event lists. Next page load will fetch fresh data.'
 				: 'Cache was already empty — no transients found.',
 		) );
 	}

@@ -24,8 +24,26 @@ class GWU_Past_Shortcode {
 
 	const TRANSIENT_BASE = 'gwu_ep_past_events';
 
+	/** Max `years=` attribute for `[past_event_list]`; transient keys are `_1` … `_{MAX_YEARS}`. */
+	public const MAX_YEARS = 10;
+
 	public function register(): void {
 		add_shortcode( 'past_event_list', array( $this, 'render' ) );
+	}
+
+	/**
+	 * Delete all `[past_event_list]` response transients (`gwu_ep_past_events_1` … `_MAX_YEARS`).
+	 *
+	 * @return int Number of transients that existed and were deleted.
+	 */
+	public static function delete_all_transients(): int {
+		$n = 0;
+		for ( $y = 1; $y <= self::MAX_YEARS; $y++ ) {
+			if ( delete_transient( self::TRANSIENT_BASE . '_' . $y ) ) {
+				$n++;
+			}
+		}
+		return $n;
 	}
 
 	public function render( $atts ): string {
@@ -34,7 +52,7 @@ class GWU_Past_Shortcode {
 			'cache' => '1',
 		), $atts, 'past_event_list' );
 
-		$years      = max( 1, min( 10, (int) $atts['years'] ) );
+		$years      = max( 1, min( self::MAX_YEARS, (int) $atts['years'] ) );
 		$cache_key  = self::TRANSIENT_BASE . '_' . $years;
 		$bust_cache = ( $atts['cache'] === '0' );
 
