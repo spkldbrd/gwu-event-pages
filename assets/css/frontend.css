@@ -244,3 +244,31 @@ a.hpl-details-link .hpl-zoom-badge {
 .gwu-reg-btn:hover {
 	background: #003d7a;
 }
+
+/* Recommended hotels (from Marketing Ops page sync) */
+.gwu-hotels {
+	margin: 1em 0 1.5em;
+}
+
+.gwu-hotels .gwu-hotel {
+	margin-bottom: 1.25em;
+	padding-bottom: 1.25em;
+	border-bottom: 1px solid #e0e0e0;
+}
+
+.gwu-hotels .gwu-hotel:last-child {
+	margin-bottom: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.gwu-hotels .gwu-hotel-name {
+	margin: 0 0 0.35em;
+	font-size: 1.05em;
+}
+
+.gwu-hotels .gwu-hotel-phone,
+.gwu-hotels .gwu-hotel-address {
+	margin: 0 0 0.25em;
+	color: #444;
+}
