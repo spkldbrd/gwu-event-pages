@@ -3,7 +3,7 @@
  * Plugin Name: GWU Event Pages
  * Plugin URI:  https://github.com/spkldbrd/gwu-event-pages
  * Description: Renders the public event list shortcode (fed from Hostlinks via REST) and provides the Event Marketing Page template used by auto-generated event pages.
- * Version:     1.2.20
+ * Version:     1.3.0
  * Author:      Digital Solution
  * Author URI:  https://digitalsolution.com
  * License:     GPL2
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GWU_EP_VERSION',    '1.2.20' );
+define( 'GWU_EP_VERSION',    '1.3.0' );
 define( 'GWU_EP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_FILE', __FILE__ );
@@ -29,6 +29,9 @@ require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-geocode.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-map-coords.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-shortcode.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-past-shortcode.php';
+require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-event-data.php';
+require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-page-template.php';
+require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-event-shortcodes.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-admin.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-geocode-cron.php';
 require_once GWU_EP_PLUGIN_DIR . 'includes/class-gwu-updater.php';
@@ -41,9 +44,11 @@ GWU_Updater::init( __FILE__, 'spkldbrd', 'gwu-event-pages' );
 add_action( 'plugins_loaded', function() {
 	// Register shortcodes.
 	$shortcode      = new GWU_Shortcode();
-	$past_shortcode = new GWU_Past_Shortcode();
-	add_action( 'init', array( $shortcode,      'register' ) );
-	add_action( 'init', array( $past_shortcode, 'register' ) );
+	$past_shortcode   = new GWU_Past_Shortcode();
+	$event_shortcodes = new GWU_Event_Shortcodes();
+	add_action( 'init', array( $shortcode,        'register' ) );
+	add_action( 'init', array( $past_shortcode,   'register' ) );
+	add_action( 'init', array( $event_shortcodes, 'register' ) );
 
 	// Enqueue front-end assets.
 	$assets = new GWU_Assets();
@@ -62,10 +67,33 @@ add_action( 'plugins_loaded', function() {
 		'sanitize_callback' => 'absint',
 	) );
 
+	register_post_meta( 'page', '_gwu_reg_url', array(
+		'show_in_rest'      => true,
+		'single'            => true,
+		'type'              => 'string',
+		'auth_callback'     => function() { return current_user_can( 'edit_posts' ); },
+		'sanitize_callback' => 'esc_url_raw',
+	) );
+
+	register_post_meta( 'page', '_gwu_event_data', array(
+		'show_in_rest'      => true,
+		'single'            => true,
+		'type'              => 'string',
+		'auth_callback'     => function() { return current_user_can( 'edit_posts' ); },
+		'sanitize_callback' => function( $value ) {
+			if ( ! is_string( $value ) || $value === '' ) {
+				return '';
+			}
+			$decoded = json_decode( $value, true );
+			return is_array( $decoded ) ? wp_json_encode( $decoded ) : '';
+		},
+	) );
+
 	// Admin menu (loaded only in WP admin).
 	if ( is_admin() ) {
 		$admin = new GWU_Admin();
 		$admin->register();
+		GWU_Page_Template::register_ajax();
 	}
 
 	GWU_Geocode_Cron::init();

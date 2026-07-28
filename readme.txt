@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.20
+Stable tag: 1.3.0
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -35,6 +35,11 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (from API fields or parsed from the location line as "City, ST" or "City, Full State Name"; OpenStreetMap Nominatim, cached in WordPress transients), with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
 
 == Changelog ==
+
+= 1.3.0 =
+* **Page Content** admin tab: edit and show/hide boilerplate sections for six page types (Grant Writing / Management / Subaward × In-Person / Zoom).
+* New shortcodes for DIVI layouts: `[event_register_button]`, `[event_section]`, `[event_hotels]`, `[event_special_instructions]`.
+* Event snapshot meta (`_gwu_event_data`, `_gwu_reg_url`) on marketing pages — written by Hostlinks Page Sync on create/regenerate.
 
 = 1.2.20 =
 * Admin “Clear Event Cache” documents and centralizes busting of all `[past_event_list]` transients (`years=1`–`10`); Settings save also clears stale backup + past caches when API-related options change.
