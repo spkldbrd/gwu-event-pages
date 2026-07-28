@@ -81,11 +81,6 @@ class GWU_Admin {
 			$notice = $this->process_geocoding_bulk_post();
 		}
 
-		if ( isset( $_POST['gwu_ep_save_page_content'] ) ) {
-			check_admin_referer( 'gwu_ep_page_content' );
-			$notice = $this->save_page_content_tab();
-		}
-
 		// ---- Handle settings save ----
 		if ( isset( $_POST['gwu_ep_save_settings'] ) ) {
 			check_admin_referer( 'gwu_ep_settings' );
@@ -133,10 +128,9 @@ class GWU_Admin {
 		}
 
 		$tabs = array(
-			'settings'      => 'Settings',
-			'page-content'  => 'Page Content',
-			'pages'         => 'Event Pages',
-			'geocoding'     => 'Geocoding log',
+			'settings'  => 'Settings',
+			'pages'     => 'Event Pages',
+			'geocoding' => 'Geocoding log',
 		);
 
 		?>
@@ -155,8 +149,6 @@ class GWU_Admin {
 
 			<?php if ( $active_tab === 'settings' ) : ?>
 				<?php $this->render_settings_tab(); ?>
-			<?php elseif ( $active_tab === 'page-content' ) : ?>
-				<?php $this->render_page_content_tab(); ?>
 			<?php elseif ( $active_tab === 'pages' ) : ?>
 				<?php $this->render_pages_tab(); ?>
 			<?php elseif ( $active_tab === 'geocoding' ) : ?>
@@ -340,15 +332,7 @@ class GWU_Admin {
 				</tr>
 				<tr>
 					<td><code>[event_register_button]</code></td>
-					<td>Registration button for the event linked to this marketing page. Place anywhere in a DIVI layout. Optional: <code>label="…"</code></td>
-				</tr>
-				<tr>
-					<td><code>[event_section section="welcome"]</code></td>
-					<td>Renders one editable boilerplate section (see <strong>Page Content</strong> tab). Sections: welcome, itinerary, format, tuition, covid, ceu, payment, purchase_orders, cancel, questions, ready_to_enroll.</td>
-				</tr>
-				<tr>
-					<td><code>[event_hotels]</code> / <code>[event_special_instructions]</code></td>
-					<td>Per-event dynamic blocks from Hostlinks (lodging HTML and special instructions).</td>
+					<td>Registration button for the event linked to this marketing page — place anywhere in a DIVI layout. Optional: <code>label="Register now!"</code>. Page body copy still comes from Marketing Ops Page Template on regenerate.</td>
 				</tr>
 			</tbody>
 		</table>
@@ -369,10 +353,11 @@ class GWU_Admin {
 			</li>
 		</ol>
 		<p>
-			<strong>Page content</strong> for DIVI layouts is edited under
-			<em>Event Pages → Page Content</em> on this site.
-			Legacy auto-generated HTML is still built on the Hostlinks subdomain under
-			<em>Marketing Ops → Settings → Page Template</em> until you switch pages to shortcodes.
+			<strong>Page content</strong> (the boilerplate text for each section) is edited on the
+			<strong>Hostlinks subdomain</strong> under
+			<em>Marketing Ops → Settings → Page Template</em>.
+			Use <code>[event_register_button]</code> in your DIVI template for button placement;
+			regenerated pages no longer embed register buttons in the HTML body.
 		</p>
 
 		<script>
@@ -418,173 +403,6 @@ class GWU_Admin {
 				}).fail(function(){
 					btn.prop('disabled', false).text('Test Connection');
 					status.css('color','red').text('Request failed.');
-				});
-			});
-		});
-		</script>
-		<?php
-	}
-
-	// -------------------------------------------------------------------------
-	// Page Content tab (DIVI shortcode boilerplate)
-	// -------------------------------------------------------------------------
-
-	private function save_page_content_tab(): string {
-		$contexts = GWU_Page_Template::get_contexts();
-		$sections = GWU_Page_Template::get_sections();
-		$context  = sanitize_key( $_POST['gwu_ep_pt_context'] ?? '' );
-
-		if ( ! isset( $contexts[ $context ] ) ) {
-			return '<div class="notice notice-error is-dismissible"><p>Invalid page type.</p></div>';
-		}
-
-		$posted = isset( $_POST['gwu_ep_pt'] ) && is_array( $_POST['gwu_ep_pt'] )
-			? wp_unslash( $_POST['gwu_ep_pt'] )
-			: array();
-
-		foreach ( array_keys( $sections ) as $key ) {
-			$row     = isset( $posted[ $key ] ) && is_array( $posted[ $key ] ) ? $posted[ $key ] : array();
-			$enabled = ! empty( $row['enabled'] );
-			$heading = sanitize_text_field( $row['heading'] ?? '' );
-			$content = isset( $row['content'] ) ? (string) $row['content'] : '';
-			GWU_Page_Template::save_section( $context, $key, $content, $enabled, $heading );
-		}
-
-		return '<div class="notice notice-success is-dismissible"><p>'
-			. esc_html( $contexts[ $context ] ) . ' page content saved.</p></div>';
-	}
-
-	private function render_page_content_tab(): void {
-		$contexts     = GWU_Page_Template::get_contexts();
-		$sections     = GWU_Page_Template::get_sections();
-		$active_ctx   = sanitize_key( $_GET['pt_context'] ?? 'writing_inperson' );
-		if ( ! isset( $contexts[ $active_ctx ] ) ) {
-			$active_ctx = 'writing_inperson';
-		}
-		$base_url  = admin_url( 'admin.php?page=' . self::MENU_SLUG . '&tab=page-content' );
-		$nonce_val = wp_create_nonce( 'gwu_ep_page_content' );
-		?>
-		<h2 style="margin-top:0;">Event Page Content</h2>
-		<p class="description" style="max-width:820px;">
-			Edit boilerplate text for each event type and delivery mode. Use the shortcodes
-			<code>[event_section section="…"]</code> and <code>[event_register_button]</code>
-			in your DIVI template to place sections anywhere. Uncheck <strong>Show</strong> to hide a section for that page type.
-		</p>
-
-		<label for="gwu-ep-pt-context-select" class="screen-reader-text">Page type</label>
-		<p>
-			<select id="gwu-ep-pt-context-select" onchange="window.location.href=this.value;" style="min-width:320px;">
-				<?php foreach ( $contexts as $ctx_key => $ctx_label ) :
-					$url = esc_url( add_query_arg( 'pt_context', $ctx_key, $base_url ) );
-					?>
-					<option value="<?php echo $url; ?>" <?php selected( $active_ctx, $ctx_key ); ?>>
-						<?php echo esc_html( $ctx_label ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
-		</p>
-
-		<form method="post" action="<?php echo esc_url( add_query_arg( 'pt_context', $active_ctx, $base_url ) ); ?>">
-			<?php wp_nonce_field( 'gwu_ep_page_content' ); ?>
-			<input type="hidden" name="gwu_ep_save_page_content" value="1">
-			<input type="hidden" name="gwu_ep_pt_context" value="<?php echo esc_attr( $active_ctx ); ?>">
-
-			<?php foreach ( $sections as $key => $def ) :
-				$enabled = GWU_Page_Template::is_section_enabled( $active_ctx, $key );
-				$heading = GWU_Page_Template::get_section_heading( $active_ctx, $key );
-				$content = GWU_Page_Template::get_section_content( $active_ctx, $key );
-				$editor_id = 'gwu_ep_pt_' . $active_ctx . '_' . $key;
-				?>
-			<div class="gwu-ep-pt-section" id="gwu-ep-pt-<?php echo esc_attr( $key ); ?>">
-				<div class="gwu-ep-pt-section__header">
-					<label>
-						<input type="checkbox" name="gwu_ep_pt[<?php echo esc_attr( $key ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>>
-						<strong><?php echo esc_html( wp_strip_all_tags( $def['label'] ) ); ?></strong>
-					</label>
-					<button type="button" class="button button-small gwu-ep-pt-reset"
-						data-context="<?php echo esc_attr( $active_ctx ); ?>"
-						data-section="<?php echo esc_attr( $key ); ?>"
-						data-nonce="<?php echo esc_attr( $nonce_val ); ?>">
-						Reset to Default
-					</button>
-				</div>
-				<p class="description"><?php echo esc_html( $def['description'] ); ?>
-					Shortcode: <code>[event_section section="<?php echo esc_attr( $key ); ?>"]</code>
-				</p>
-				<?php if ( ! empty( $def['tokens'] ) ) : ?>
-				<p class="description">Tokens:
-					<?php foreach ( $def['tokens'] as $token => $hint ) : ?>
-						<code><?php echo esc_html( $token ); ?></code><?php echo esc_html( ' — ' . wp_strip_all_tags( $hint ) ); ?>;
-					<?php endforeach; ?>
-				</p>
-				<?php endif; ?>
-				<p>
-					<label>Heading (optional — leave blank for no H2):
-						<input type="text" class="regular-text" name="gwu_ep_pt[<?php echo esc_attr( $key ); ?>][heading]"
-							value="<?php echo esc_attr( $heading ); ?>" placeholder="<?php echo esc_attr( $def['default_heading'] ); ?>">
-					</label>
-				</p>
-				<?php
-				wp_editor( $content, $editor_id, array(
-					'textarea_name' => 'gwu_ep_pt[' . $key . '][content]',
-					'media_buttons' => false,
-					'teeny'         => false,
-					'tinymce'       => array(
-						'toolbar1' => 'bold,italic,underline,separator,link,unlink,separator,bullist,numlist,separator,undo,redo',
-						'toolbar2' => '',
-					),
-					'quicktags'     => true,
-					'editor_height' => 140,
-				) );
-				?>
-			</div>
-			<?php endforeach; ?>
-
-			<p class="submit">
-				<button type="submit" class="button button-primary">Save <?php echo esc_html( $contexts[ $active_ctx ] ); ?></button>
-			</p>
-		</form>
-
-		<style>
-		.gwu-ep-pt-section {
-			background: #fff;
-			border: 1px solid #ddd;
-			border-radius: 4px;
-			padding: 16px 20px;
-			margin-bottom: 20px;
-			max-width: 960px;
-		}
-		.gwu-ep-pt-section__header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 12px;
-			margin-bottom: 8px;
-		}
-		</style>
-		<script>
-		jQuery(function($){
-			$(document).on('click', '.gwu-ep-pt-reset', function(){
-				var btn = $(this);
-				if ( ! confirm('Reset this section to defaults for this page type?') ) {
-					return;
-				}
-				btn.prop('disabled', true);
-				$.post(ajaxurl, {
-					action  : 'gwu_ep_reset_page_section',
-					_ajax_nonce : btn.data('nonce'),
-					context : btn.data('context'),
-					section : btn.data('section')
-				}, function(resp){
-					if ( resp.success ) {
-						location.reload();
-					} else {
-						btn.prop('disabled', false);
-						alert('Error: ' + (resp.data || 'Unknown'));
-					}
-				}).fail(function(){
-					btn.prop('disabled', false);
-					alert('Request failed.');
 				});
 			});
 		});
