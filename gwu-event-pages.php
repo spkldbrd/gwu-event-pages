@@ -3,7 +3,7 @@
  * Plugin Name: GWU Event Pages
  * Plugin URI:  https://github.com/spkldbrd/gwu-event-pages
  * Description: Renders the public event list shortcode (fed from Hostlinks via REST) and provides the Event Marketing Page template used by auto-generated event pages.
- * Version:     1.2.22
+ * Version:     1.2.23
  * Author:      Digital Solution
  * Author URI:  https://digitalsolution.com
  * License:     GPL2
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GWU_EP_VERSION',    '1.2.22' );
+define( 'GWU_EP_VERSION',    '1.2.23' );
 define( 'GWU_EP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'GWU_EP_PLUGIN_FILE', __FILE__ );
@@ -72,6 +72,16 @@ add_action( 'plugins_loaded', function() {
 		'type'              => 'string',
 		'auth_callback'     => function() { return current_user_can( 'edit_posts' ); },
 		'sanitize_callback' => 'esc_url_raw',
+	) );
+
+	register_post_meta( 'page', '_gwu_course_type_html', array(
+		'show_in_rest'      => true,
+		'single'            => true,
+		'type'              => 'string',
+		'auth_callback'     => function() { return current_user_can( 'edit_posts' ); },
+		'sanitize_callback' => function( $value ) {
+			return is_string( $value ) ? wp_kses_post( $value ) : '';
+		},
 	) );
 
 	// Admin menu (loaded only in WP admin).

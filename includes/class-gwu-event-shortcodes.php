@@ -11,6 +11,7 @@ class GWU_Event_Shortcodes {
 
 	public function register(): void {
 		add_shortcode( 'event_register_button', array( $this, 'register_button' ) );
+		add_shortcode( 'event_course_type', array( $this, 'course_type' ) );
 	}
 
 	/**
@@ -38,5 +39,17 @@ class GWU_Event_Shortcodes {
 			esc_attr( $classes ),
 			esc_html( $atts['label'] )
 		);
+	}
+
+	/**
+	 * [event_course_type] — Course Type block for the sidebar (from page meta at last regenerate).
+	 */
+	public function course_type( $atts ): string {
+		$html = GWU_Event_Data::get_course_type_html();
+		if ( $html === '' ) {
+			return '';
+		}
+
+		return '<div class="gwu-course-type">' . wp_kses_post( $html ) . '</div>';
 	}
 }

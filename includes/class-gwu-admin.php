@@ -334,6 +334,10 @@ class GWU_Admin {
 					<td><code>[event_register_button]</code></td>
 					<td>Registration button for the event linked to this marketing page — place anywhere in a DIVI layout. Optional: <code>label="Register now!"</code>. Page body copy still comes from Marketing Ops Page Template on regenerate.</td>
 				</tr>
+				<tr>
+					<td><code>[event_course_type]</code></td>
+					<td>Course Type block (Writing / Management / Subaward, Zoom or in-person) for the sidebar. Requires regenerate from Hostlinks after template edits. Turn off body copy under Marketing Ops → Settings → GWU Page Sync.</td>
+				</tr>
 			</tbody>
 		</table>
 
@@ -357,6 +361,7 @@ class GWU_Admin {
 			<strong>Hostlinks subdomain</strong> under
 			<em>Marketing Ops → Settings → Page Template</em>.
 			Use <code>[event_register_button]</code> in your DIVI template for button placement;
+			use <code>[event_course_type]</code> in the sidebar for Course Type.
 			regenerated pages no longer embed register buttons in the HTML body.
 		</p>
 

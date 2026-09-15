@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.22
+Stable tag: 1.2.23
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -36,7 +36,12 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 
 `[event_register_button]` — Registration CTA for the event marketing page linked via `_gwu_event_id`. Optional `label="…"`. Use in DIVI for button placement; requires Hostlinks Marketing Ops 1.11.20+ (register buttons removed from auto-generated page HTML).
 
+`[event_course_type]` — Course Type block for the sidebar (HTML from `_gwu_course_type_html` at last regenerate). Pair with Marketing Ops → GWU Page Sync to omit Course Type from the main body.
+
 == Changelog ==
+
+= 1.2.23 =
+* New `[event_course_type]` shortcode for sidebar Course Type (meta from Hostlinks page sync).
 
 = 1.2.22 =
 * CSS for recommended hotels block (`.gwu-hotels`) on event marketing pages.
