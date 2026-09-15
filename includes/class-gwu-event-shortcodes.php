@@ -34,7 +34,7 @@ class GWU_Event_Shortcodes {
 
 		$classes = trim( 'gwu-reg-btn ' . $atts['class'] );
 		return sprintf(
-			'<p class="gwu-reg-btn-wrap" style="margin:12px 0;"><a href="%s" class="%s">%s</a></p>',
+			'<p class="gwu-reg-btn-wrap" style="margin:12px 0;"><a href="%s" class="%s" target="_blank" rel="noopener noreferrer">%s</a></p>',
 			esc_url( $url ),
 			esc_attr( $classes ),
 			esc_html( $atts['label'] )
