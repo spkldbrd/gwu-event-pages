@@ -340,7 +340,7 @@ class GWU_Admin {
 				</tr>
 				<tr>
 					<td><code>[event_host_venue]</code></td>
-					<td>Host &amp; venue lines for in-person events (from Hostlinks Host &amp; Venue fields at last regenerate). Empty for Zoom. Pair with <code>[event_register_button]</code> in a top card row; turn off body copy under Marketing Ops → GWU Page Sync.</td>
+					<td>Host &amp; venue for in-person events (from Hostlinks at last regenerate). Each line uses <code>.gwu-host-venue-line--displayed</code>, <code>--location</code>, <code>--address-single</code>, etc. Empty for Zoom. Regenerate after Marketing Ops 1.11.29+ for structured markup.</td>
 				</tr>
 			</tbody>
 		</table>

@@ -286,6 +286,20 @@ a.hpl-details-link .hpl-zoom-badge {
 	line-height: 1.5;
 }
 
+.gwu-host-venue-lines {
+	display: block;
+}
+
+.gwu-host-venue-line {
+	display: block;
+	margin: 0;
+}
+
+.gwu-host-venue-line + .gwu-host-venue-line {
+	margin-top: 0.35em;
+}
+
+/* Legacy synced markup (single <p> with <br>) before regen */
 .gwu-host-venue p {
 	margin: 0;
 }
