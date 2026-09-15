@@ -44,6 +44,19 @@ class GWU_Event_Data {
 		return is_string( $html ) ? trim( $html ) : '';
 	}
 
+	/**
+	 * Host &amp; venue HTML snapshot from last Hostlinks page sync (_gwu_host_venue_html).
+	 */
+	public static function get_host_venue_html( ?int $page_id = null ): string {
+		$page_id = $page_id ?: (int) get_the_ID();
+		if ( $page_id <= 0 ) {
+			return '';
+		}
+
+		$html = get_post_meta( $page_id, '_gwu_host_venue_html', true );
+		return is_string( $html ) ? trim( $html ) : '';
+	}
+
 	private static function parse_reg_url_from_content( int $page_id ): string {
 		$post = get_post( $page_id );
 		if ( ! $post || $post->post_content === '' ) {

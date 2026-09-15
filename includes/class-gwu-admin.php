@@ -338,6 +338,10 @@ class GWU_Admin {
 					<td><code>[event_course_type]</code></td>
 					<td>Course Type block (Writing / Management / Subaward, Zoom or in-person) for the sidebar. Requires regenerate from Hostlinks after template edits. Turn off body copy under Marketing Ops → Settings → GWU Page Sync.</td>
 				</tr>
+				<tr>
+					<td><code>[event_host_venue]</code></td>
+					<td>Host &amp; venue lines for in-person events (from Hostlinks Host &amp; Venue fields at last regenerate). Empty for Zoom. Pair with <code>[event_register_button]</code> in a top card row; turn off body copy under Marketing Ops → GWU Page Sync.</td>
+				</tr>
 			</tbody>
 		</table>
 
@@ -360,9 +364,9 @@ class GWU_Admin {
 			<strong>Page content</strong> (the boilerplate text for each section) is edited on the
 			<strong>Hostlinks subdomain</strong> under
 			<em>Marketing Ops → Settings → Page Template</em>.
-			Use <code>[event_register_button]</code> in your DIVI template for button placement;
+			Use <code>[event_register_button]</code> and <code>[event_host_venue]</code> in your DIVI layout;
 			use <code>[event_course_type]</code> in the sidebar for Course Type.
-			regenerated pages no longer embed register buttons in the HTML body.
+			Regenerated pages no longer embed register buttons or host/venue in the HTML body by default.
 		</p>
 
 		<script>

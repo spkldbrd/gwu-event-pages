@@ -12,6 +12,7 @@ class GWU_Event_Shortcodes {
 	public function register(): void {
 		add_shortcode( 'event_register_button', array( $this, 'register_button' ) );
 		add_shortcode( 'event_course_type', array( $this, 'course_type' ) );
+		add_shortcode( 'event_host_venue', array( $this, 'host_venue' ) );
 	}
 
 	/**
@@ -51,5 +52,17 @@ class GWU_Event_Shortcodes {
 		}
 
 		return '<div class="gwu-course-type">' . wp_kses_post( $html ) . '</div>';
+	}
+
+	/**
+	 * [event_host_venue] — Host &amp; venue block (from page meta at last regenerate).
+	 */
+	public function host_venue( $atts ): string {
+		$html = GWU_Event_Data::get_host_venue_html();
+		if ( $html === '' ) {
+			return '';
+		}
+
+		return '<div class="gwu-host-venue">' . wp_kses_post( $html ) . '</div>';
 	}
 }

@@ -280,3 +280,16 @@ a.hpl-details-link .hpl-zoom-badge {
 .gwu-course-type p:last-child {
 	margin-bottom: 0;
 }
+
+.gwu-host-venue {
+	margin: 0 0 1em;
+	line-height: 1.5;
+}
+
+.gwu-host-venue p {
+	margin: 0;
+}
+
+.gwu-host-venue p + p {
+	margin-top: 0.35em;
+}
