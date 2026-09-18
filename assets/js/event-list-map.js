@@ -223,11 +223,7 @@
 		return map;
 	}
 
-	function bind(root) {
-		var mapBtn = root.querySelector('.gwu-hpl-btn--map');
-		var listBtn = root.querySelector('.gwu-hpl-btn--list');
-		var listPane = root.querySelector('.gwu-hpl-pane--list');
-		var mapPane = root.querySelector('.gwu-hpl-pane--map');
+	function wireListMapToggle(root, mapBtn, listBtn, listPane, mapPane) {
 		if (!mapBtn || !listBtn || !listPane || !mapPane) {
 			return;
 		}
@@ -256,7 +252,32 @@
 		});
 	}
 
+	function bind(root) {
+		var mapBtn = root.querySelector('.gwu-hpl-btn--map');
+		var listBtn = root.querySelector('.gwu-hpl-btn--list');
+		var listPane = root.querySelector('.gwu-hpl-pane--list');
+		var mapPane = root.querySelector('.gwu-hpl-pane--map');
+		wireListMapToggle(root, mapBtn, listBtn, listPane, mapPane);
+	}
+
+	function bindDetachedIntro(intro) {
+		var targetId = intro.getAttribute('data-gwu-hpl-target');
+		if (!targetId) {
+			return;
+		}
+		var root = document.getElementById(targetId);
+		if (!root) {
+			return;
+		}
+		var mapBtn = intro.querySelector('.gwu-hpl-btn--map');
+		var listBtn = intro.querySelector('.gwu-hpl-btn--list');
+		var listPane = root.querySelector('.gwu-hpl-pane--list');
+		var mapPane = root.querySelector('.gwu-hpl-pane--map');
+		wireListMapToggle(root, mapBtn, listBtn, listPane, mapPane);
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		document.querySelectorAll('.gwu-hpl-view').forEach(bind);
+		document.querySelectorAll('.gwu-hpl-intro[data-gwu-hpl-target]').forEach(bindDetachedIntro);
 	});
 })();

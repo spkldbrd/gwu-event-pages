@@ -331,6 +331,14 @@ class GWU_Admin {
 					<td>Same list, plus a control to open a U.S. map with state outlines and pins by state (Zoom webinars stay on the list only). Button wording and map height are configured in the fields above.</td>
 				</tr>
 				<tr>
+					<td><code>[public_event_list_intro]</code></td>
+					<td>Map/list page header (H3 + intro from settings above). Add <code>enable_map="1"</code> for list/map buttons; pair with <code>[public_event_list_columns enable_map="1"]</code> below any promo block.</td>
+				</tr>
+				<tr>
+					<td><code>[public_event_list_columns]</code></td>
+					<td>Two-column upcoming events grid only. Supports <code>cache="0"</code> and <code>enable_map="1"</code> (use with intro shortcode when map toolbar is above other page content).</td>
+				</tr>
+				<tr>
 					<td><code>[event_register_button]</code></td>
 					<td>Registration button for the event linked to this marketing page — place anywhere in a DIVI layout. Optional: <code>label="Register now!"</code>. Page body copy still comes from Marketing Ops Page Template on regenerate.</td>
 				</tr>

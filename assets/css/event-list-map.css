@@ -4,6 +4,10 @@
 	margin-bottom: 1.5rem;
 }
 
+.gwu-hpl-intro--detached {
+	margin-bottom: 1.25rem;
+}
+
 /* 4/5 intro text (left) + 1/5 buttons (right), aligned to top */
 .gwu-hpl-intro {
 	display: grid;

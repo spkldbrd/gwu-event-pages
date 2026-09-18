@@ -16,29 +16,110 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   [public_event_list]
  *   [public_event_list cache="0"]
  *   [public_event_list enable_map="1"]
- *   [public_event_list left_heading="Writing Workshops" right_heading="Management Workshops"]
+ *
+ * Split layout (promo or other blocks between intro and list):
+ *   [public_event_list_intro enable_map="1"]
+ *   … page content …
+ *   [public_event_list_columns enable_map="1" cache="0"]
  */
 class GWU_Shortcode {
 
 	const TRANSIENT_KEY = 'gwu_ep_public_events';
 
+	/** When set, map list/columns pair with a detached intro on the same page. */
+	private static ?string $split_map_view_id = null;
+
 	public function register(): void {
-		add_shortcode( 'public_event_list', array( $this, 'render' ) );
+		add_shortcode( 'public_event_list',         array( $this, 'render' ) );
+		add_shortcode( 'public_event_list_intro',   array( $this, 'render_intro' ) );
+		add_shortcode( 'public_event_list_columns', array( $this, 'render_columns' ) );
 	}
 
 	public function render( $atts ): string {
+		$atts       = $this->parse_list_atts( $atts, 'public_event_list' );
+		$payload    = $this->load_payload( $atts['bust_cache'] );
+		if ( is_string( $payload ) ) {
+			return $payload;
+		}
+		return $this->render_list( $payload, $atts['enable_map'] );
+	}
+
+	/**
+	 * Intro header (H3 + lede). With enable_map="1", includes list/map toolbar and pairs with
+	 * [public_event_list_columns enable_map="1"] below any content placed between them.
+	 */
+	public function render_intro( $atts ): string {
+		$atts       = $this->parse_list_atts( $atts, 'public_event_list_intro' );
+		$enable_map = $atts['enable_map'];
+
+		if ( $enable_map ) {
+			$uid     = self::reserve_split_map_view_id();
+			$list_id = $uid . '-list';
+			$map_id  = $uid . '-map';
+			$this->enqueue_map_assets();
+			return $this->render_map_intro_header( true, $uid, $list_id, $map_id );
+		}
+
+		return $this->render_map_intro_header( false, null, '', '' );
+	}
+
+	/**
+	 * Two-column event grid only. Use enable_map="1" with a preceding intro shortcode for map mode.
+	 */
+	public function render_columns( $atts ): string {
+		$atts    = $this->parse_list_atts( $atts, 'public_event_list_columns' );
+		$payload = $this->load_payload( $atts['bust_cache'] );
+		if ( is_string( $payload ) ) {
+			return $payload;
+		}
+
+		$meta          = $payload['meta'] ?? array();
+		$zoom_east     = $meta['zoom_east']    ?? '9:30-4:30 EST';
+		$zoom_west     = $meta['zoom_west']    ?? '8:00-3:00 PST';
+		$zoom_default  = $meta['zoom_default'] ?? '9:30-4:30 EST';
+		$list_html     = $this->render_grid_html( $payload );
+
+		if ( ! $atts['enable_map'] ) {
+			return $list_html;
+		}
+
+		$split_id      = self::$split_map_view_id;
+		$intro_inside  = ( $split_id === null );
+
+		return $this->wrap_list_with_map(
+			$list_html,
+			$payload,
+			$zoom_east,
+			$zoom_west,
+			$zoom_default,
+			$intro_inside,
+			$split_id
+		);
+	}
+
+	/**
+	 * @return array{bust_cache: bool, enable_map: bool}
+	 */
+	private function parse_list_atts( $atts, string $tag ): array {
 		$atts = shortcode_atts(
 			array(
 				'cache'      => '1',
 				'enable_map' => '0',
 			),
 			$atts,
-			'public_event_list'
+			$tag
 		);
 
-		$bust_cache  = ( $atts['cache'] === '0' );
-		$enable_map  = in_array( strtolower( (string) $atts['enable_map'] ), array( '1', 'true', 'yes' ), true );
+		return array(
+			'bust_cache' => ( $atts['cache'] === '0' ),
+			'enable_map' => in_array( strtolower( (string) $atts['enable_map'] ), array( '1', 'true', 'yes' ), true ),
+		);
+	}
 
+	/**
+	 * @return array<string, mixed>|string Payload array, or HTML error string.
+	 */
+	private function load_payload( bool $bust_cache ) {
 		$payload    = $bust_cache ? false : get_transient( self::TRANSIENT_KEY );
 		$from_fresh = false;
 
@@ -57,7 +138,7 @@ class GWU_Shortcode {
 			if ( $stale ) {
 				$payload = $stale;
 			} else {
-				return '<p class="hpl-no-events">Upcoming events will be listed here shortly. Please check back soon.</p>';
+				return $this->render_empty_notice();
 			}
 		}
 
@@ -65,7 +146,18 @@ class GWU_Shortcode {
 			set_transient( self::TRANSIENT_KEY . '_stale', $payload, DAY_IN_SECONDS );
 		}
 
-		return $this->render_list( $payload, $enable_map );
+		return $payload;
+	}
+
+	private function render_empty_notice(): string {
+		return '<p class="hpl-no-events">Upcoming events will be listed here shortly. Please check back soon.</p>';
+	}
+
+	private static function reserve_split_map_view_id(): string {
+		if ( self::$split_map_view_id === null ) {
+			self::$split_map_view_id = wp_unique_id( 'gwu-hpl-' );
+		}
+		return self::$split_map_view_id;
 	}
 
 	// -------------------------------------------------------------------------
@@ -110,6 +202,31 @@ class GWU_Shortcode {
 	// -------------------------------------------------------------------------
 
 	private function render_list( array $payload, bool $enable_map ): string {
+		$meta         = $payload['meta'] ?? array();
+		$zoom_east    = $meta['zoom_east']    ?? '9:30-4:30 EST';
+		$zoom_west    = $meta['zoom_west']    ?? '8:00-3:00 PST';
+		$zoom_default = $meta['zoom_default'] ?? '9:30-4:30 EST';
+		$list_html    = $this->render_grid_html( $payload );
+
+		if ( ! $enable_map ) {
+			return $list_html;
+		}
+
+		return $this->wrap_list_with_map(
+			$list_html,
+			$payload,
+			$zoom_east,
+			$zoom_west,
+			$zoom_default,
+			true,
+			null
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $payload Full API payload.
+	 */
+	private function render_grid_html( array $payload ): string {
 		$events = $payload['events'];
 		$meta   = $payload['meta'] ?? array();
 
@@ -185,31 +302,87 @@ class GWU_Shortcode {
 
 		</div><!-- .hpl-wrapper -->
 		<?php
-		$list_html = ob_get_clean();
+		return ob_get_clean();
+	}
 
-		if ( ! $enable_map ) {
-			return $list_html;
+	/**
+	 * @return array{0: string, 1: string} H3 and intro paragraph from settings.
+	 */
+	private function get_map_intro_texts(): array {
+		$h3_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_H3, GWU_Admin::default_map_intro_h3() ) );
+		if ( $h3_text === '' ) {
+			$h3_text = GWU_Admin::default_map_intro_h3();
+		}
+		$p_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_P, GWU_Admin::default_map_intro_p() ) );
+		if ( $p_text === '' ) {
+			$p_text = GWU_Admin::default_map_intro_p();
+		}
+		return array( $h3_text, $p_text );
+	}
+
+	/**
+	 * Map/list page intro. Detached variant sets data-gwu-hpl-target for a later columns shortcode.
+	 */
+	private function render_map_intro_header(
+		bool $with_toolbar,
+		?string $detach_view_id,
+		string $list_id,
+		string $map_id
+	): string {
+		list( $h3_text, $p_text ) = $this->get_map_intro_texts();
+
+		$label_map  = (string) get_option( GWU_Admin::OPT_MAP_LABEL_MAP, 'View map' );
+		$label_list = (string) get_option( GWU_Admin::OPT_MAP_LABEL_LIST, 'View list' );
+
+		$class = 'gwu-hpl-intro';
+		$extra = '';
+		if ( $detach_view_id !== null && $detach_view_id !== '' ) {
+			$class .= ' gwu-hpl-intro--detached';
+			$extra  = ' data-gwu-hpl-target="' . esc_attr( $detach_view_id ) . '"';
 		}
 
-		return $this->wrap_list_with_map( $list_html, $payload, $zoom_east, $zoom_west, $zoom_default );
+		ob_start();
+		?>
+		<header class="<?php echo esc_attr( $class ); ?>"<?php echo $extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+			<div class="gwu-hpl-intro__text">
+				<h3 class="gwu-hpl-intro__title"><strong><?php echo esc_html( $h3_text ); ?></strong></h3>
+				<p class="gwu-hpl-intro__lede"><strong><em><?php echo esc_html( $p_text ); ?></em></strong></p>
+			</div>
+			<?php if ( $with_toolbar ) : ?>
+			<div class="gwu-hpl-intro__actions" role="toolbar" aria-label="<?php echo esc_attr( 'List and map display' ); ?>">
+				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--map" data-gwu-hpl-show="map" aria-controls="<?php echo esc_attr( $map_id ); ?>" aria-pressed="false">
+					<span class="gwu-hpl-btn__icon dashicons dashicons-location-alt" aria-hidden="true"></span>
+					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_map ); ?></span>
+				</button>
+				<button type="button" class="gwu-hpl-btn gwu-hpl-btn--list is-active" data-gwu-hpl-show="list" aria-controls="<?php echo esc_attr( $list_id ); ?>" aria-pressed="true">
+					<span class="gwu-hpl-btn__icon dashicons dashicons-list-view" aria-hidden="true"></span>
+					<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_list ); ?></span>
+				</button>
+			</div>
+			<?php endif; ?>
+		</header>
+		<?php
+		return ob_get_clean();
 	}
 
 	/**
 	 * @param string               $list_html Inner two-column markup.
 	 * @param array<string, mixed> $payload   Full API payload (events + meta).
+	 * @param bool                 $intro_inside When false, intro was rendered earlier via [public_event_list_intro].
+	 * @param string|null          $fixed_view_id Shared view id for split layout; null generates a new id.
 	 */
 	private function wrap_list_with_map(
 		string $list_html,
 		array $payload,
 		string $zoom_east,
 		string $zoom_west,
-		string $zoom_default
+		string $zoom_default,
+		bool $intro_inside = true,
+		?string $fixed_view_id = null
 	): string {
-		$uid       = wp_unique_id( 'gwu-hpl-' );
-		$list_id   = $uid . '-list';
-		$map_id    = $uid . '-map';
-		$label_map = (string) get_option( GWU_Admin::OPT_MAP_LABEL_MAP, 'View map' );
-		$label_list = (string) get_option( GWU_Admin::OPT_MAP_LABEL_LIST, 'View list' );
+		$uid        = ( $fixed_view_id !== null && $fixed_view_id !== '' ) ? $fixed_view_id : wp_unique_id( 'gwu-hpl-' );
+		$list_id    = $uid . '-list';
+		$map_id     = $uid . '-map';
 		$map_height = GWU_Admin::sanitize_map_height( (string) get_option( GWU_Admin::OPT_MAP_HEIGHT, '620px' ) );
 
 		$markers = $this->build_map_markers( $payload['events'] ?? array(), $zoom_east, $zoom_west, $zoom_default );
@@ -223,34 +396,14 @@ class GWU_Shortcode {
 			$markers_json = '[]';
 		}
 
-		$h3_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_H3, GWU_Admin::default_map_intro_h3() ) );
-		if ( $h3_text === '' ) {
-			$h3_text = GWU_Admin::default_map_intro_h3();
-		}
-		$p_text = trim( (string) get_option( GWU_Admin::OPT_MAP_INTRO_P, GWU_Admin::default_map_intro_p() ) );
-		if ( $p_text === '' ) {
-			$p_text = GWU_Admin::default_map_intro_p();
-		}
-
 		ob_start();
 		?>
 		<div class="gwu-hpl-view" data-gwu-hpl-view="list" id="<?php echo esc_attr( $uid ); ?>" data-gwu-markers="<?php echo esc_attr( $markers_json ); ?>">
-			<header class="gwu-hpl-intro">
-				<div class="gwu-hpl-intro__text">
-					<h3 class="gwu-hpl-intro__title"><strong><?php echo esc_html( $h3_text ); ?></strong></h3>
-					<p class="gwu-hpl-intro__lede"><strong><em><?php echo esc_html( $p_text ); ?></em></strong></p>
-				</div>
-				<div class="gwu-hpl-intro__actions" role="toolbar" aria-label="<?php echo esc_attr( 'List and map display' ); ?>">
-					<button type="button" class="gwu-hpl-btn gwu-hpl-btn--map" data-gwu-hpl-show="map" aria-controls="<?php echo esc_attr( $map_id ); ?>" aria-pressed="false">
-						<span class="gwu-hpl-btn__icon dashicons dashicons-location-alt" aria-hidden="true"></span>
-						<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_map ); ?></span>
-					</button>
-					<button type="button" class="gwu-hpl-btn gwu-hpl-btn--list is-active" data-gwu-hpl-show="list" aria-controls="<?php echo esc_attr( $list_id ); ?>" aria-pressed="true">
-						<span class="gwu-hpl-btn__icon dashicons dashicons-list-view" aria-hidden="true"></span>
-						<span class="gwu-hpl-btn__text"><?php echo esc_html( $label_list ); ?></span>
-					</button>
-				</div>
-			</header>
+			<?php if ( $intro_inside ) : ?>
+				<?php
+				echo $this->render_map_intro_header( true, null, $list_id, $map_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+			<?php endif; ?>
 			<div id="<?php echo esc_attr( $list_id ); ?>" class="gwu-hpl-pane gwu-hpl-pane--list" role="region" aria-label="<?php echo esc_attr( 'Event list' ); ?>">
 				<?php echo $list_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>

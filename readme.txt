@@ -3,7 +3,7 @@ Contributors: digitalsolution
 Tags: events, shortcode, grant writing
 Requires at least: 6.0
 Tested up to: 6.7
-Stable tag: 1.2.27
+Stable tag: 1.2.28
 License: GPLv2 or later
 
 Renders the public event list shortcode and provides the Event Marketing Page template for grantwritingusa.com.
@@ -34,6 +34,10 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 
 `[public_event_list enable_map="1"]` — Same list, plus a U.S. map toggle (state outlines from bundled GeoJSON). In-person pins use city + state (from API fields or parsed from the location line as "City, ST" or "City, Full State Name"; OpenStreetMap Nominatim, cached in WordPress transients), with state-level fallback if geocoding is unavailable. Map filters: Grant Writing, Grant Management, and Managing Subawards (Zoom-only events appear on the list only).
 
+`[public_event_list_intro]` — Header text from Event Pages settings (H3 + intro). With `enable_map="1"`, includes list/map buttons for a split layout.
+
+`[public_event_list_columns]` — Two-column grid only; `cache="0"` and `enable_map="1"` supported. Place promo or other blocks between intro and columns on the page.
+
 `[event_register_button]` — Registration CTA for the event marketing page linked via `_gwu_event_id`. Optional `label="…"`. Use in DIVI for button placement; requires Hostlinks Marketing Ops 1.11.20+ (register buttons removed from auto-generated page HTML).
 
 `[event_course_type]` — Course Type block for the sidebar (HTML from `_gwu_course_type_html` at last regenerate). Pair with Marketing Ops → GWU Page Sync to omit Course Type from the main body.
@@ -41,6 +45,9 @@ GWU Event Pages is a companion plugin for grantwritingusa.com that:
 `[event_host_venue]` — Host &amp; venue block for in-person events (HTML from `_gwu_host_venue_html` at last regenerate). Empty for Zoom webinars. Pair with `[event_register_button]` in a top card row; omit from body under Marketing Ops → GWU Page Sync.
 
 == Changelog ==
+
+= 1.2.28 =
+* Split public event list: `[public_event_list_intro]` and `[public_event_list_columns]` for content between header and grid (map mode supported).
 
 = 1.2.27 =
 * Hotels block: two-column card grid (`.gwu-hotels` / `.gwu-hotel`); stacks on narrow screens.
